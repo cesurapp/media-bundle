@@ -3,6 +3,8 @@
 namespace Cesurapp\MediaBundle\Tests;
 
 use Cesurapp\MediaBundle\MediaBundle;
+use Cesurapp\StorageBundle\StorageBundle;
+use Doctrine\Bundle\DoctrineBundle\DoctrineBundle;
 use Symfony\Bundle\FrameworkBundle\FrameworkBundle;
 use Symfony\Bundle\FrameworkBundle\Kernel\MicroKernelTrait;
 use Symfony\Component\DependencyInjection\Loader\Configurator\ContainerConfigurator;
@@ -19,6 +21,8 @@ class Kernel extends BaseKernel
     {
         return [
             new FrameworkBundle(),
+            new StorageBundle(),
+            new DoctrineBundle(),
             new MediaBundle(),
         ];
     }
@@ -29,12 +33,30 @@ class Kernel extends BaseKernel
             'test' => true,
         ]);
 
-        // Media Bundle Default Configuration
-        /* $container->extension('media', []); */
-    }
+        // Storage Bundle Default Configuration
+        $container->extension('storage', [
+            'default' => 'main',
+            'devices' => [
+                'main' => [
+                    'driver' => 'local',
+                    'root' => '%kernel.project_dir%/var',
+                ],
+            ],
+        ]);
 
-    /*protected function configureRoutes(RoutingConfigurator $routes): void
-    {
-        $routes->add('home', '/')->controller([$this, 'helloAction']);
-    }*/
+        // Doctrine Bundle Default Configuration
+        $container->extension('doctrine', [
+            'dbal' => [
+                'default_connection' => 'default',
+                'url' => 'sqlite:///%kernel.project_dir%/var/database.sqlite',
+            ],
+            'orm' => [
+                'auto_generate_proxy_classes' => false,
+                'enable_lazy_ghost_objects' => true,
+                'report_fields_where_declared' => true,
+                'naming_strategy' => 'doctrine.orm.naming_strategy.underscore_number_aware',
+                'auto_mapping' => true,
+            ],
+        ]);
+    }
 }

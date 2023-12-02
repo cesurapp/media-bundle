@@ -13,11 +13,19 @@
     ],
     "require": {
         "php": ">=8.2",
-        "symfony/dependency-injection": "^7.0",
-        "symfony/http-kernel": "^7.0"
+        "ext-fileinfo": "*",
+        "ext-imagick": "*",
+        "symfony/mime": "*",
+        "symfony/uid": "*",
+        "symfony/dependency-injection": "*",
+        "symfony/http-kernel": "*",
+        "symfony/framework-bundle": "*",
+        "symfony/console": "*",
+        "doctrine/orm": "*",
+        "doctrine/doctrine-bundle": "*",
+        "cesurapp/storage-bundle": "^1.0"
     },
     "require-dev": {
-        "symfony/framework-bundle": "^7.0",
         "php-cs-fixer/shim": "^3.40",
         "symfony/test-pack": "^1.1",
         "phpstan/phpstan": "^1.10"
@@ -43,5 +51,10 @@
             "@qa:phpstan",
             "@test"
         ]
+    },
+    "extra": {
+        "symfony": {
+            "require": "7.0.*"
+        }
     }
 }
