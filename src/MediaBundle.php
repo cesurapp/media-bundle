@@ -4,8 +4,6 @@ namespace Cesurapp\MediaBundle;
 
 use Doctrine\DBAL\Types\Type;
 use Cesurapp\MediaBundle\Entity\Media;
-use Cesurapp\MediaBundle\EventListener\MediaColumnListener;
-use Cesurapp\MediaBundle\EventListener\MediaRemovedListener;
 use Cesurapp\MediaBundle\Manager\MediaManager;
 use Cesurapp\MediaBundle\Type\MediaType;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
@@ -33,10 +31,8 @@ class MediaBundle extends AbstractBundle
         // Set Autoconfigure
         $services = $container->services()->defaults()->autowire()->autoconfigure();
 
-        // Commands
+        $services->load('Cesurapp\\MediaBundle\\EventListener\\', 'EventListener');
         $services->load('Cesurapp\\MediaBundle\\Command\\', 'Command');
-
-        // Repository
         $services->load('Cesurapp\\MediaBundle\\Repository\\', 'Repository');
 
         // Media Manager
@@ -44,16 +40,5 @@ class MediaBundle extends AbstractBundle
         if ('test' === $container->env()) {
             $manager->public();
         }
-
-        // Media Event Listener
-        $services->set(MediaColumnListener::class)->tag('doctrine.event_subscriber', [
-            'priority' => 500,
-            'connection' => 'default',
-        ]);
-
-        $services->set(MediaRemovedListener::class)->tag('doctrine.orm.entity_listener', [
-            'event' => 'postRemove',
-            'entity' => Media::class,
-        ]);
     }
 }

@@ -7,7 +7,7 @@ namespace Cesurapp\MediaBundle\Compressor;
  *
  * @see https://github.com/utopia-php/image
  *
- * @author  Ramazan APAYDIN
+ * @author  Cesur APAYDIN
  */
 class Image
 {
@@ -22,15 +22,11 @@ class Image
     public const GRAVITY_BOTTOM_RIGHT = 'bottom-right';
 
     public \Imagick $image;
-
     private int $width;
-
     private int $height;
-
+    private int $cornerRadius = 0;
     private int $borderWidth = 0;
-
     private string $borderColor = '';
-
     private int $rotation = 0;
 
     public function __construct(string $data)
@@ -38,12 +34,14 @@ class Image
         $this->image = new \Imagick();
         $this->image->readImageBlob($data);
 
+        // Solve formats such as GIF. Otherwise width&height would be from last frame (wrong)
+        $this->image->setFirstIterator();
+
         $this->width = $this->image->getImageWidth();
         $this->height = $this->image->getImageHeight();
 
         // Use metadata to fetch rotation. Will be perform right before exporting
-        $orientationType = $this->image->getImageProperties()['exif:Orientation'] ?? $this->image->getImageOrientation(
-        );
+        $orientationType = $this->image->getImageProperties()['exif:Orientation'] ?? null;
 
         // Reference: https://docs.imgix.com/apis/rendering/rotation/orient
         // Mirror rotations are ignored, because we don't support mirroring
@@ -124,6 +122,7 @@ class Image
                 $y = ($resizeHeight / 2) - ($height / 2);
                 break;
             case self::GRAVITY_BOTTOM_LEFT:
+                $x = 0;
                 $y = $resizeHeight - $height;
                 break;
             case self::GRAVITY_BOTTOM:
@@ -183,6 +182,10 @@ class Image
     {
         $this->borderWidth = $borderWidth;
         $this->borderColor = $borderColor;
+
+        if (!empty($this->cornerRadius)) {
+            return $this;
+        }
         $this->image->borderImage($borderColor, $borderWidth, $borderWidth);
 
         return $this;
@@ -302,32 +305,32 @@ class Image
             case 'webp':
                 try {
                     $this->image->setImageFormat('webp');
-                } catch (\Throwable $th) {
+                } catch (\Throwable) {
                     $signature = $this->image->getImageSignature();
-                    $temp = '/tmp/temp-'.$signature.'.'.\strtolower($this->image->getImageFormat());
+                    $temp = '/tmp/temp-'.$signature.'.'.strtolower($this->image->getImageFormat());
                     $output = '/tmp/output-'.$signature.'.webp';
 
                     // save temp
                     $this->image->writeImages($temp, true);
 
                     // convert temp
-                    \exec("cwebp -quiet -metadata none -q $quality $temp -o $output");
+                    exec("cwebp -quiet -metadata none -q $quality $temp -o $output");
 
-                    $data = \file_get_contents($output);
+                    $data = file_get_contents($output);
 
                     // load webp
                     if (empty($path)) {
                         return $data;
                     }
 
-                    \file_put_contents($path, $data, LOCK_EX);
+                    file_put_contents($path, $data, LOCK_EX);
 
                     $this->image->clear();
                     $this->image->destroy();
 
                     // delete webp
-                    \unlink($output);
-                    \unlink($temp);
+                    unlink($output);
+                    unlink($temp);
 
                     return null;
                 }

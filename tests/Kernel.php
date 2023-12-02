@@ -21,8 +21,8 @@ class Kernel extends BaseKernel
     {
         return [
             new FrameworkBundle(),
-            new StorageBundle(),
             new DoctrineBundle(),
+            new StorageBundle(),
             new MediaBundle(),
         ];
     }

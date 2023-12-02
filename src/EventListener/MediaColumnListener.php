@@ -2,20 +2,16 @@
 
 namespace Cesurapp\MediaBundle\EventListener;
 
-use Doctrine\Bundle\DoctrineBundle\EventSubscriber\EventSubscriberInterface;
+use Doctrine\Bundle\DoctrineBundle\Attribute\AsDoctrineListener;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\Event\OnFlushEventArgs;
 use Doctrine\ORM\Events;
 use Cesurapp\MediaBundle\Entity\Media;
 use Cesurapp\MediaBundle\Entity\MediaInterface;
 
-class MediaColumnListener implements EventSubscriberInterface
+#[AsDoctrineListener(Events::onFlush)]
+class MediaColumnListener
 {
-    public function getSubscribedEvents(): array
-    {
-        return [Events::onFlush];
-    }
-
     public function onFlush(OnFlushEventArgs $event): void
     {
         $em = $event->getObjectManager();
