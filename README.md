@@ -7,6 +7,12 @@ It is used to keep track of files. When media is deleted, it is also automatical
 You can use the same media with multiple tables. You must create a new trait for each column.
 Imagick compression, resizing, conversion support is available for image files.
 
+### Install
+Required Symfony 7
+```
+composer req cesurapp/media-bundle
+```
+
 ### Commands
 
 ```shell
