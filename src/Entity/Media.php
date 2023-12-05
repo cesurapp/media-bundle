@@ -36,7 +36,7 @@ class Media
     #[ORM\Column(type: 'json', nullable: true)]
     private array $data = [];
 
-    #[ORM\Column(type: 'string', length: 20)]
+    #[ORM\Column(type: 'string', length: 25)]
     private string $storage;
 
     public function getId(): ?Ulid

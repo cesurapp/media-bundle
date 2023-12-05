@@ -150,7 +150,7 @@ class MediaManager
         return $data;
     }
 
-    protected function createMedia(string $mimeType, string $extension, string $content, int $size): Media
+    public function createMedia(string $mimeType, string $extension, string $content, int $size, bool $persist = true): Media
     {
         // Convert JPG
         if ($this->imageConvertJPG) {
@@ -175,7 +175,10 @@ class MediaManager
             ->setStorage($this->storage->getStorageKey())
             ->setSize($size)
             ->setPath($this->getPath(Ulid::generate(), $extension));
-        $this->em->persist($media);
+
+        if ($persist) {
+            $this->em->persist($media);
+        }
 
         // Write Storage
         $this->storage->write($content, $media->getPath(), $media->getMime());

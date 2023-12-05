@@ -9,7 +9,7 @@ use Doctrine\ORM\Events;
 use Cesurapp\MediaBundle\Entity\Media;
 use Cesurapp\MediaBundle\Entity\MediaInterface;
 
-#[AsDoctrineListener(Events::onFlush)]
+#[AsDoctrineListener(event: Events::onFlush, priority: 500, connection: 'default')]
 class MediaColumnListener
 {
     public function onFlush(OnFlushEventArgs $event): void

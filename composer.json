@@ -28,7 +28,8 @@
     "require-dev": {
         "php-cs-fixer/shim": "^3.40",
         "symfony/test-pack": "^1.1",
-        "phpstan/phpstan": "^1.10"
+        "phpstan/phpstan": "^1.10",
+        "zenstruck/foundry": "^1.36"
     },
     "autoload": {
         "psr-4": {
