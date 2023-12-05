@@ -6,5 +6,3 @@ parameters:
         - src
     ignoreErrors:
         - '#id is never written, only read#'
-    excludePaths:
-        - 'src/Factory/MediaFactory.php'
