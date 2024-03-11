@@ -7,6 +7,8 @@ use Cesurapp\MediaBundle\Repository\MediaRepository;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Bridge\Doctrine\IdGenerator\UlidGenerator;
 use Symfony\Bridge\Doctrine\Types\UlidType;
+use Symfony\Component\HttpFoundation\HeaderUtils;
+use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Uid\Ulid;
 
 #[ORM\Entity(repositoryClass: MediaRepository::class)]
@@ -153,6 +155,14 @@ class Media
     public function setContent(Storage $storage, string $data, string $mime): bool
     {
         return $storage->write($this->getPath(), $data, $mime);
+    }
+
+    public function getResponse(Storage $storage): Response
+    {
+        return (new Response($this->getContent($storage), 200, [
+            'Content-Disposition' => HeaderUtils::makeDisposition(HeaderUtils::DISPOSITION_INLINE, basename($this->getPath())),
+            'Content-Type' => $this->getMime(),
+        ]))->setPublic()->setMaxAge(86400);
     }
 
     public function __toString(): string
