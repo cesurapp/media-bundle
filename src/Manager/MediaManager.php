@@ -74,7 +74,7 @@ class MediaManager
      *
      * @return Media[]
      */
-    public function uploadFile(Request $request, array $keys = null): array
+    public function uploadFile(Request $request, ?array $keys = null): array
     {
         $data = $keys ? array_intersect_key($request->files->all(), array_flip($keys)) : $request->files->all();
 

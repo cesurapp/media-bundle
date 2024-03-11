@@ -279,7 +279,7 @@ class Image
         return $this->save(null, $type, $quality);
     }
 
-    public function save(string $path = null, string $type = '', int $quality = 75): string|bool|null
+    public function save(?string $path = null, string $type = '', int $quality = 75): string|bool|null
     {
         // Create directory with write permissions
         if (null !== $path && !\file_exists(\dirname($path))) {
