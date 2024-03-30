@@ -159,15 +159,13 @@ class Media
 
     public function getResponse(Storage $storage): Response
     {
-        $response = (new Response($this->getContent($storage), 200, [
+        return (new Response($this->getContent($storage), 200, [
             'Content-Disposition' => HeaderUtils::makeDisposition(HeaderUtils::DISPOSITION_INLINE, basename($this->getPath())),
             'Content-Type' => $this->getMime(),
             'Content-Length' => $this->getSize(),
         ]))
             ->setPublic()
             ->setMaxAge(86400);
-
-        return $response;
     }
 
     public function __toString(): string
