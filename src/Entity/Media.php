@@ -157,12 +157,21 @@ class Media
         return $storage->write($this->getPath(), $data, $mime);
     }
 
-    public function getResponse(Storage $storage): Response
+    public function getResponse(Storage $storage, bool $sendHeader = true): Response
     {
-        return (new Response($this->getContent($storage), 200, [
+        $response = (new Response($this->getContent($storage), 200, [
             'Content-Disposition' => HeaderUtils::makeDisposition(HeaderUtils::DISPOSITION_INLINE, basename($this->getPath())),
             'Content-Type' => $this->getMime(),
-        ]))->setPublic()->setMaxAge(86400);
+            'Content-Length' => $this->getSize(),
+        ]))
+            ->setPublic()
+            ->setMaxAge(86400);
+
+        if ($sendHeader) {
+            $response->sendHeaders();
+        }
+
+        return $response;
     }
 
     public function __toString(): string
