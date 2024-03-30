@@ -157,7 +157,7 @@ class Media
         return $storage->write($this->getPath(), $data, $mime);
     }
 
-    public function getResponse(Storage $storage, bool $sendHeader = true): Response
+    public function getResponse(Storage $storage): Response
     {
         $response = (new Response($this->getContent($storage), 200, [
             'Content-Disposition' => HeaderUtils::makeDisposition(HeaderUtils::DISPOSITION_INLINE, basename($this->getPath())),
@@ -166,10 +166,6 @@ class Media
         ]))
             ->setPublic()
             ->setMaxAge(86400);
-
-        if ($sendHeader) {
-            $response->sendHeaders();
-        }
 
         return $response;
     }
