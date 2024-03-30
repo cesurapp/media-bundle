@@ -56,6 +56,9 @@ class Kernel extends BaseKernel
                 'report_fields_where_declared' => true,
                 'naming_strategy' => 'doctrine.orm.naming_strategy.underscore_number_aware',
                 'auto_mapping' => true,
+                'controller_resolver' => [
+                    'auto_mapping' => true,
+                ],
             ],
         ]);
     }
