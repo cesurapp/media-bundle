@@ -2,6 +2,7 @@
 
 namespace Cesurapp\MediaBundle\Manager;
 
+use Cesurapp\MediaBundle\Exception\FileValidationException;
 use Cesurapp\StorageBundle\Storage\Storage;
 use Doctrine\ORM\EntityManagerInterface;
 use Cesurapp\MediaBundle\Compressor\Image;
@@ -100,22 +101,23 @@ class MediaManager
 
     /**
      * @return Media[]
+     *
+     * @throws FileValidationException
      */
-    public function uploadBase64(Request $request, array $keys): array
+    public function uploadBase64(Request $request, array $keys, ?array $allowedMimes = null): array
     {
         $data = array_intersect_key($request->request->all(), array_flip($keys));
 
         // Convert to Media Entity
-        array_walk_recursive($data, function (&$item) {
-            try {
-                $file = base64_decode($item);
-                $mimeType = finfo_buffer(finfo_open(), $file, FILEINFO_MIME_TYPE);
-                $extension = (new MimeTypes())->getExtensions($mimeType);
-
-                $item = $this->createMedia($mimeType, $extension[0], $file, strlen($file));
-            } catch (\Exception $exception) {
-                $this->logger->error('Base64 File Upload Failed: '.$exception->getMessage());
+        array_walk_recursive($data, function (&$item, $key) use ($allowedMimes) {
+            $data = explode(',', $item);
+            $file = base64_decode($data[1] ?? $data[0]);
+            $mimeType = finfo_buffer(finfo_open(), $file, FILEINFO_MIME_TYPE);
+            if ($allowedMimes && !in_array($mimeType, $allowedMimes, true)) {
+                throw new FileValidationException(code: 422, errors: [$key => ['Invalid file type.']]);
             }
+            $extension = (new MimeTypes())->getExtensions($mimeType);
+            $item = $this->createMedia($mimeType, $extension[0], $file, strlen($file));
         });
 
         // Save
