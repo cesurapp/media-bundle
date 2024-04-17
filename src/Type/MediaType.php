@@ -73,4 +73,9 @@ class MediaType extends Type
     {
         $this->entityManager = $em;
     }
+
+    public function requiresSQLCommentHint(AbstractPlatform $platform): true
+    {
+        return true;
+    }
 }
