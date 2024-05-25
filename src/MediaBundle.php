@@ -3,7 +3,6 @@
 namespace Cesurapp\MediaBundle;
 
 use Doctrine\DBAL\Types\Type;
-use Cesurapp\MediaBundle\Entity\Media;
 use Cesurapp\MediaBundle\Manager\MediaManager;
 use Cesurapp\MediaBundle\Type\MediaType;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
