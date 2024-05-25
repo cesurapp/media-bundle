@@ -52,8 +52,8 @@ class ExampleController  {
             ->setImageQuality(75)            // Default Image Quality
             ->setImageSize(1024,768)         // Maximum Image Size
             //->uploadFile($request)                         // HTTP File Upload
-            //->uploadBase64($request, ['base64DataKey'])    // Json Base64 Image Upload
-            ->uploadLink($request, ['imageLinkKey'])         // Image Link Upload
+            //->uploadBase64($request, ['base64DataKey'], ['base64DataKey' => ['image/png']])    // Json Base64 Image Upload
+            ->uploadLink($request, ['imageLinkKey'], ['imageLinkKey' => ['image/png']])         // Image Link Upload
     }
 }
 ```
