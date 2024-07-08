@@ -29,7 +29,7 @@
         "php-cs-fixer/shim": "^3.40",
         "symfony/test-pack": "^1.1",
         "phpstan/phpstan": "^1.10",
-        "zenstruck/foundry": "^1.36"
+        "zenstruck/foundry": "^2.0"
     },
     "autoload": {
         "psr-4": {
