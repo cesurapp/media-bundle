@@ -41,6 +41,9 @@ class Media
     #[ORM\Column(type: 'string', length: 25)]
     private string $storage;
 
+    #[ORM\Column(type: 'string', nullable: true)]
+    private ?string $owner;
+
     public function getId(): ?Ulid
     {
         return $this->id;
@@ -140,6 +143,18 @@ class Media
     public function setStorage(string $storage): self
     {
         $this->storage = $storage;
+
+        return $this;
+    }
+
+    public function getOwner(): ?string
+    {
+        return $this->owner;
+    }
+
+    public function setOwner(string $ownerId): self
+    {
+        $this->owner = $ownerId;
 
         return $this;
     }
