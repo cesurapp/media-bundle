@@ -176,7 +176,7 @@ class MediaManager
                 $content = $this->compress($content, $extension);
             } catch (\Throwable) {
                 if ($reqKey) {
-                    throw new FileValidationException(code: 422, errors: [$reqKey => 'Invalid file content.']);
+                    throw new FileValidationException(code: 422, errors: [$reqKey => ['Invalid file content.']]);
                 }
 
                 throw new FileValidationException(code: 422, errors: ['Invalid file content.']);
