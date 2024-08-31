@@ -63,9 +63,9 @@ class ManagerTest extends KernelTestCase
         // Upload All
         $medias = $manager->uploadBase64($request, ['imageBase64'], ['imageBase64' => ['image/png']]);
 
-        $this->assertInstanceOf(Media::class, $medias['imageBase64']);
+        $this->assertInstanceOf(Media::class, $medias['imageBase64'][0]);
         $this->assertTrue(
-            $storage->device($medias['imageBase64']->getStorage())->exists($medias['imageBase64']->getPath())
+            $storage->device($medias['imageBase64'][0]->getStorage())->exists($medias['imageBase64'][0]->getPath())
         );
 
         array_walk_recursive($medias, static function ($media) use ($em) {
@@ -74,7 +74,7 @@ class ManagerTest extends KernelTestCase
         $em->flush();
 
         $this->assertFalse(
-            $storage->device($medias['imageBase64']->getStorage())->exists($medias['imageBase64']->getPath())
+            $storage->device($medias['imageBase64'][0]->getStorage())->exists($medias['imageBase64'][0]->getPath())
         );
     }
 
@@ -92,15 +92,15 @@ class ManagerTest extends KernelTestCase
         // Upload All
         $medias = $manager->uploadLink($request, ['filesLink'], ['filesLink' => ['image/png']]);
 
-        $this->assertInstanceOf(Media::class, $medias['filesLink']);
-        $this->assertTrue($storage->device($medias['filesLink']->getStorage())->exists($medias['filesLink']->getPath()));
+        $this->assertInstanceOf(Media::class, $medias['filesLink'][0]);
+        $this->assertTrue($storage->device($medias['filesLink'][0]->getStorage())->exists($medias['filesLink'][0]->getPath()));
 
         array_walk_recursive($medias, static function ($media) use ($em) {
             $em->remove($media);
         });
         $em->flush();
 
-        $this->assertFalse($storage->device($medias['filesLink']->getStorage())->exists($medias['filesLink']->getPath()));
+        $this->assertFalse($storage->device($medias['filesLink'][0]->getStorage())->exists($medias['filesLink'][0]->getPath()));
     }
 
     private function initDatabase(KernelInterface $kernel): void

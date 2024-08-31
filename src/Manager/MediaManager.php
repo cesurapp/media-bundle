@@ -111,15 +111,21 @@ class MediaManager
         $data = array_intersect_key($request->request->all(), array_flip($keys));
 
         // Convert to Media Entity
-        array_walk_recursive($data, function (&$item, $key) use ($allowedMimes) {
-            $data = explode(',', $item);
-            $file = base64_decode($data[1] ?? $data[0]);
-            $mimeType = finfo_buffer(finfo_open(), $file, FILEINFO_MIME_TYPE);
-            if ($allowedMimes && isset($allowedMimes[$key]) && !in_array($mimeType, $allowedMimes[$key], true)) {
-                throw new FileValidationException(code: 422, errors: [$key => ['Invalid file type.']]);
+        array_walk($data, function (&$files, $key) use ($allowedMimes) {
+            $items = !is_array($files) ? [$files] : $files;
+
+            foreach ($items as $index => $item) {
+                $data = explode(',', $item);
+                $file = base64_decode($data[1] ?? $data[0]);
+                $mimeType = finfo_buffer(finfo_open(), $file, FILEINFO_MIME_TYPE);
+                if ($allowedMimes && isset($allowedMimes[$key]) && !in_array($mimeType, $allowedMimes[$key], true)) {
+                    throw new FileValidationException(code: 422, errors: [$key => ['Invalid file type.']]);
+                }
+                $extension = (new MimeTypes())->getExtensions($mimeType)[0];
+                $items[$index] = $this->createMedia($mimeType, $extension, $file, strlen($file), true, $key);
             }
-            $extension = (new MimeTypes())->getExtensions($mimeType)[0];
-            $item = $this->createMedia($mimeType, $extension, $file, strlen($file), true, $key);
+
+            $files = $items;
         });
         // Save
         $this->em->flush();
@@ -135,20 +141,25 @@ class MediaManager
         $data = array_intersect_key($request->request->all(), array_flip($keys));
 
         // Convert to Media Entity
-        array_walk_recursive($data, function (&$item, $key) use ($allowedMimes) {
-            try {
-                $file = $this->httpClient->request('GET', $item)->getContent();
-                $mimeType = finfo_buffer(finfo_open(), $file, FILEINFO_MIME_TYPE);
-                if ($allowedMimes && isset($allowedMimes[$key]) && !in_array($mimeType, $allowedMimes[$key], true)) {
-                    throw new FileValidationException(code: 422, errors: [$key => ['Invalid file type.']]);
-                }
-                $extension = (new MimeTypes())->getExtensions($mimeType)[0];
-                $item = $this->createMedia($mimeType, $extension, $file, strlen($file), true, $key);
-            } catch (\Exception $exception) {
-                $this->logger->error('Link File Upload Failed: '.$exception->getMessage());
-            }
-        });
+        array_walk($data, function (&$files, $key) use ($allowedMimes) {
+            $items = !is_array($files) ? [$files] : $files;
 
+            foreach ($items as $index => $item) {
+                try {
+                    $file = $this->httpClient->request('GET', $item)->getContent();
+                    $mimeType = finfo_buffer(finfo_open(), $file, FILEINFO_MIME_TYPE);
+                    if ($allowedMimes && isset($allowedMimes[$key]) && !in_array($mimeType, $allowedMimes[$key], true)) {
+                        throw new FileValidationException(code: 422, errors: [$key => ['Invalid file type.']]);
+                    }
+                    $extension = (new MimeTypes())->getExtensions($mimeType)[0];
+                    $items[$index] = $this->createMedia($mimeType, $extension, $file, strlen($file), true, $key);
+                } catch (\Exception $exception) {
+                    $this->logger->error('Link File Upload Failed: '.$exception->getMessage());
+                }
+            }
+
+            $files = $items;
+        });
 
         // Save
         $this->em->flush();
