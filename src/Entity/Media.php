@@ -4,7 +4,6 @@ namespace Cesurapp\MediaBundle\Entity;
 
 use Cesurapp\StorageBundle\Storage\Storage;
 use Cesurapp\MediaBundle\Repository\MediaRepository;
-use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Bridge\Doctrine\IdGenerator\UlidGenerator;
 use Symfony\Bridge\Doctrine\Types\UlidType;
@@ -45,7 +44,7 @@ class Media
     #[ORM\Column(type: 'string', nullable: true)]
     private ?string $owner;
 
-    #[ORM\Column(type: Types::DATETIME_IMMUTABLE, nullable: false)]
+    #[ORM\Column(type: 'datetime_immutable', nullable: false)]
     private \DateTimeImmutable $createdAt;
 
     public function __construct()
