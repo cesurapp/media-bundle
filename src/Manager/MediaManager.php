@@ -80,13 +80,15 @@ class MediaManager
         $data = $keys ? array_intersect_key($request->files->all(), array_flip($keys)) : $request->files->all();
 
         // Convert to Media Entity
-        array_walk_recursive($data, function (&$item) {
+        array_walk_recursive($data, function (&$item, $key) {
             try {
                 $item = $this->createMedia(
                     $item->getMimeType(),
                     $item->getExtension(),
                     $item->getContent(),
-                    $item->getSize()
+                    $item->getSize(),
+                    true,
+                    $key
                 );
             } catch (\Exception $exception) {
                 $this->logger->error('HTTP File Upload Failed: '.$exception->getMessage());
@@ -116,10 +118,9 @@ class MediaManager
             if ($allowedMimes && isset($allowedMimes[$key]) && !in_array($mimeType, $allowedMimes[$key], true)) {
                 throw new FileValidationException(code: 422, errors: [$key => ['Invalid file type.']]);
             }
-            $extension = (new MimeTypes())->getExtensions($mimeType);
-            $item = $this->createMedia($mimeType, $extension[0], $file, strlen($file));
+            $extension = (new MimeTypes())->getExtensions($mimeType)[0];
+            $item = $this->createMedia($mimeType, $extension, $file, strlen($file), true, $key);
         });
-
         // Save
         $this->em->flush();
 
@@ -141,13 +142,13 @@ class MediaManager
                 if ($allowedMimes && isset($allowedMimes[$key]) && !in_array($mimeType, $allowedMimes[$key], true)) {
                     throw new FileValidationException(code: 422, errors: [$key => ['Invalid file type.']]);
                 }
-                $extension = (new MimeTypes())->getExtensions($mimeType);
-
-                $item = $this->createMedia($mimeType, $extension[0], $file, strlen($file));
+                $extension = (new MimeTypes())->getExtensions($mimeType)[0];
+                $item = $this->createMedia($mimeType, $extension, $file, strlen($file), true, $key);
             } catch (\Exception $exception) {
                 $this->logger->error('Link File Upload Failed: '.$exception->getMessage());
             }
         });
+
 
         // Save
         $this->em->flush();
@@ -155,7 +156,7 @@ class MediaManager
         return $data;
     }
 
-    public function createMedia(string $mimeType, string $extension, string $content, int $size, bool $persist = true): Media
+    public function createMedia(string $mimeType, string $extension, string $content, int $size, bool $persist = true, ?string $reqKey = null): Media
     {
         // Convert JPG
         if ($this->imageConvertJPG) {
@@ -171,7 +172,15 @@ class MediaManager
 
         // Compress
         if ($this->imageCompress) {
-            $content = $this->compress($content, $extension);
+            try {
+                $content = $this->compress($content, $extension);
+            } catch (\Throwable) {
+                if ($reqKey) {
+                    throw new FileValidationException(code: 422, errors: [$reqKey => 'Invalid file content.']);
+                }
+
+                throw new FileValidationException(code: 422, errors: ['Invalid file content.']);
+            }
         }
 
         // Create Media
