@@ -25,7 +25,7 @@ class MediaManager
         private readonly Storage $storage,
         private readonly EntityManagerInterface $em,
         protected readonly LoggerInterface $logger,
-        private readonly HttpClientInterface $httpClient
+        private readonly HttpClientInterface $httpClient,
     ) {
     }
 
@@ -161,11 +161,11 @@ class MediaManager
         if ($this->imageConvertJPG) {
             $extension = match ($extension) {
                 'png', 'jpeg' => 'jpg',
-                default => $extension
+                default => $extension,
             };
             $mimeType = match ($extension) {
                 'jpg' => 'image/jpeg',
-                default => $mimeType
+                default => $mimeType,
             };
         }
 
@@ -202,7 +202,7 @@ class MediaManager
             'jpg', 'jpeg', 'png' => Image::create($data)
                 ->resize($this->imageHeight, $this->imageWidth)
                 ->output($extension, $this->imageQuality),
-            default => $data
+            default => $data,
         };
     }
 }

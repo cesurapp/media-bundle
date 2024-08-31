@@ -50,7 +50,7 @@ class Image
                 3 => 180,
                 6 => 90,
                 8 => -90,
-                default => 0
+                default => 0,
             };
         }
     }
