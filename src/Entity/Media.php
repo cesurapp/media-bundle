@@ -4,6 +4,7 @@ namespace Cesurapp\MediaBundle\Entity;
 
 use Cesurapp\StorageBundle\Storage\Storage;
 use Cesurapp\MediaBundle\Repository\MediaRepository;
+use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Bridge\Doctrine\IdGenerator\UlidGenerator;
 use Symfony\Bridge\Doctrine\Types\UlidType;
@@ -43,6 +44,14 @@ class Media
 
     #[ORM\Column(type: 'string', nullable: true)]
     private ?string $owner;
+
+    #[ORM\Column(type: Types::DATETIME_IMMUTABLE, nullable: false)]
+    private \DateTimeImmutable $createdAt;
+
+    public function __construct()
+    {
+        $this->createdAt = new \DateTimeImmutable();
+    }
 
     public function getId(): ?Ulid
     {
@@ -155,6 +164,18 @@ class Media
     public function setOwner(string $ownerId): self
     {
         $this->owner = $ownerId;
+
+        return $this;
+    }
+
+    public function getCreatedAt(): \DateTimeImmutable
+    {
+        return $this->createdAt;
+    }
+
+    public function setCreatedAt(\DateTimeImmutable $createdAt): self
+    {
+        $this->createdAt = $createdAt;
 
         return $this;
     }
