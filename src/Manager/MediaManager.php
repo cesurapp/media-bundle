@@ -100,7 +100,7 @@ class MediaManager
     }
 
     /**
-     * @return Media[]
+     * @return Media[][]
      *
      * @throws FileValidationException
      */
@@ -127,7 +127,7 @@ class MediaManager
     }
 
     /**
-     * @return Media[]
+     * @return Media[][]
      */
     public function uploadLink(Request $request, array $keys, ?array $allowedMimes = null): array
     {
