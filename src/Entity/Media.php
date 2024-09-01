@@ -179,6 +179,16 @@ class Media
         return $this;
     }
 
+    public function toString(): string
+    {
+        return sprintf('%s.%s', $this->getId()->toBase32(), $this->getExtension());
+    }
+
+    public function getExtension(): string
+    {
+        return pathinfo($this->path, PATHINFO_EXTENSION);
+    }
+
     /**
      * Read Content.
      */
