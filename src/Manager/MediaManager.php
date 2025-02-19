@@ -4,8 +4,8 @@ namespace Cesurapp\MediaBundle\Manager;
 
 use Cesurapp\MediaBundle\Exception\FileValidationException;
 use Cesurapp\StorageBundle\Storage\Storage;
+use claviska\SimpleImage;
 use Doctrine\ORM\EntityManagerInterface;
-use Cesurapp\MediaBundle\Compressor\Image;
 use Cesurapp\MediaBundle\Entity\Media;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\HttpFoundation\Request;
@@ -219,9 +219,11 @@ class MediaManager
     protected function compress(string $data, string $extension): string
     {
         return match ($extension) {
-            'jpg', 'jpeg', 'png' => Image::create($data)
-                ->resize($this->imageHeight, $this->imageWidth)
-                ->output($extension, $this->imageQuality),
+            'jpg', 'jpeg', 'png' => (new SimpleImage())
+                ->fromString($data)
+                ->autoOrient()
+                ->bestFit($this->imageWidth, $this->imageHeight)
+                ->toString(null, $this->imageQuality),
             default => $data,
         };
     }

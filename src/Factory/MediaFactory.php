@@ -31,7 +31,7 @@ final class MediaFactory extends PersistentProxyObjectFactory
      *
      * @todo add your default values here
      */
-    protected function defaults(): array|callable
+    protected function defaults(): array
     {
         $content = file_get_contents(__DIR__.'/../../tests/resources/image.png');
         $media = $this->mediaManager

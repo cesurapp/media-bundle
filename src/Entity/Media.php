@@ -160,7 +160,7 @@ class Media
         return $this->owner;
     }
 
-    public function setOwner(string $ownerId): self
+    public function setOwner(?string $ownerId): self
     {
         $this->owner = $ownerId;
 

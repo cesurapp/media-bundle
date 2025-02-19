@@ -4,6 +4,7 @@ namespace Cesurapp\MediaBundle\Entity;
 
 use Doctrine\ORM\Mapping as ORM;
 
+/** @phpstan-ignore-next-line */
 trait MediaTrait
 {
     #[ORM\Column(type: 'media', nullable: true)]

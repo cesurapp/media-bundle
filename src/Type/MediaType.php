@@ -3,7 +3,8 @@
 namespace Cesurapp\MediaBundle\Type;
 
 use Doctrine\DBAL\Platforms\AbstractPlatform;
-use Doctrine\DBAL\Types\ConversionException;
+use Doctrine\DBAL\Types\Exception\InvalidFormat;
+use Doctrine\DBAL\Types\Exception\ValueNotConvertible;
 use Doctrine\DBAL\Types\Type;
 use Doctrine\ORM\EntityManagerInterface;
 use Cesurapp\MediaBundle\Entity\Media;
@@ -41,7 +42,7 @@ class MediaType extends Type
 
             return json_encode($array, JSON_THROW_ON_ERROR | JSON_PRESERVE_ZERO_FRACTION);
         } catch (\JsonException $e) {
-            throw ConversionException::conversionFailedSerialization($value, 'json', $e->getMessage(), $e);
+            throw InvalidFormat::new($value, 'json', 'array', $e);
         }
     }
 
@@ -65,17 +66,12 @@ class MediaType extends Type
 
             return $array;
         } catch (\JsonException $e) {
-            throw ConversionException::conversionFailed($value, $this->getName(), $e);
+            throw ValueNotConvertible::new($value, $this->getName(), $e->getMessage(), $e);
         }
     }
 
     public function setEntityManager(EntityManagerInterface $em): void
     {
         $this->entityManager = $em;
-    }
-
-    public function requiresSQLCommentHint(AbstractPlatform $platform): true
-    {
-        return true;
     }
 }
