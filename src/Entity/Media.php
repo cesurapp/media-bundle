@@ -5,20 +5,17 @@ namespace Cesurapp\MediaBundle\Entity;
 use Cesurapp\StorageBundle\Storage\Storage;
 use Cesurapp\MediaBundle\Repository\MediaRepository;
 use Doctrine\ORM\Mapping as ORM;
-use Symfony\Bridge\Doctrine\IdGenerator\UlidGenerator;
-use Symfony\Bridge\Doctrine\Types\UlidType;
+use Symfony\Bridge\Doctrine\Types\UuidType;
 use Symfony\Component\HttpFoundation\HeaderUtils;
 use Symfony\Component\HttpFoundation\Response;
-use Symfony\Component\Uid\Ulid;
+use Symfony\Component\Uid\Uuid;
 
 #[ORM\Entity(repositoryClass: MediaRepository::class)]
 class Media
 {
     #[ORM\Id]
-    #[ORM\GeneratedValue(strategy: 'CUSTOM')]
-    #[ORM\Column(type: UlidType::NAME, unique: true)]
-    #[ORM\CustomIdGenerator(class: UlidGenerator::class)]
-    private ?Ulid $id;
+    #[ORM\Column(type: UuidType::NAME, unique: true)]
+    private Uuid $id;
 
     #[ORM\Column(type: 'string')]
     private string $path;
@@ -49,10 +46,11 @@ class Media
 
     public function __construct()
     {
+        $this->id = Uuid::v7();
         $this->createdAt = new \DateTimeImmutable();
     }
 
-    public function getId(): ?Ulid
+    public function getId(): Uuid
     {
         return $this->id;
     }

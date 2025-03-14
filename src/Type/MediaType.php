@@ -8,7 +8,7 @@ use Doctrine\DBAL\Types\Exception\ValueNotConvertible;
 use Doctrine\DBAL\Types\Type;
 use Doctrine\ORM\EntityManagerInterface;
 use Cesurapp\MediaBundle\Entity\Media;
-use Symfony\Component\Uid\Ulid;
+use Symfony\Component\Uid\Uuid;
 
 /**
  * Doctrine Media Type Stored in JSON.
@@ -61,7 +61,7 @@ class MediaType extends Type
         try {
             $ids = json_decode($value, true, 512, JSON_THROW_ON_ERROR);
             foreach ($ids as $id) {
-                $array[$id] = $this->entityManager->getReference(Media::class, Ulid::fromString($id));
+                $array[$id] = $this->entityManager->getReference(Media::class, Uuid::fromString($id));
             }
 
             return $array;

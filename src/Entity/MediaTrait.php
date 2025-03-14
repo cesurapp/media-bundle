@@ -43,9 +43,9 @@ trait MediaTrait
         return $this;
     }
 
-    public function findMedia(string $ulid): ?Media
+    public function findMedia(string $uuid): ?Media
     {
-        return array_values(array_filter($this->media, static fn ($item) => $item->getId()?->toBase32() === $ulid))[0] ?? null;
+        return array_values(array_filter($this->media, static fn ($item) => $item->getId()?->toBase32() === $uuid))[0] ?? null;
     }
 
     public function setMedia(array $medias): self

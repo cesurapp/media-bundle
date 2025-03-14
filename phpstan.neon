@@ -5,4 +5,3 @@ parameters:
     ignoreErrors:
         - identifier: missingType.generics
         - identifier: missingType.iterableValue
-        - '#id is never written, only read#'
