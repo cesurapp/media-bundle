@@ -12,7 +12,7 @@
         }
     ],
     "require": {
-        "php": ">=8.2",
+        "php": ">=8.3",
         "ext-gd": "*",
         "ext-fileinfo": "*",
         "symfony/mime": "^7.0",
@@ -30,7 +30,7 @@
         "php-cs-fixer/shim": "^3.69",
         "symfony/test-pack": "^1.1",
         "phpstan/phpstan": "^2.1.5",
-        "zenstruck/foundry": "^2.0"
+        "zenstruck/foundry": "^2.6"
     },
     "autoload": {
         "psr-4": {
@@ -43,8 +43,8 @@
         }
     },
     "scripts": {
-        "test": "@php ./vendor/bin/phpunit --verbose --testdox --colors",
-        "test:stop": "@php ./vendor/bin/phpunit --verbose --testdox --colors --stop-on-failure",
+        "test": "@php ./vendor/bin/phpunit --testdox --colors",
+        "test:stop": "@php ./vendor/bin/phpunit --testdox --colors --stop-on-failure",
         "qa:fix": "vendor/bin/php-cs-fixer fix --ansi --allow-risky=yes",
         "qa:lint": "vendor/bin/php-cs-fixer fix --dry-run --diff --ansi --allow-risky=yes",
         "qa:phpstan": "vendor/bin/phpstan analyse --no-progress --ansi --memory-limit 512m",
