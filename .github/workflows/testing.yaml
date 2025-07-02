@@ -3,7 +3,7 @@ on:
   push:
 
 env:
-  php-version: '8.2'
+  php-version: '8.4'
   php-extensions: :xdebug
   key: php-cache
 
