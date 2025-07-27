@@ -8,14 +8,14 @@ use Doctrine\ORM\Mapping as ORM;
 use Symfony\Bridge\Doctrine\Types\UuidType;
 use Symfony\Component\HttpFoundation\HeaderUtils;
 use Symfony\Component\HttpFoundation\Response;
-use Symfony\Component\Uid\Uuid;
+use Symfony\Component\Uid\UuidV7;
 
 #[ORM\Entity(repositoryClass: MediaRepository::class)]
 class Media
 {
     #[ORM\Id]
     #[ORM\Column(type: UuidType::NAME, unique: true)]
-    private Uuid $id;
+    private UuidV7 $id;
 
     #[ORM\Column(type: 'string')]
     private string $path;
@@ -46,11 +46,11 @@ class Media
 
     public function __construct()
     {
-        $this->id = Uuid::v7();
+        $this->id = UuidV7::v7();
         $this->createdAt = new \DateTimeImmutable();
     }
 
-    public function getId(): Uuid
+    public function getId(): UuidV7
     {
         return $this->id;
     }
