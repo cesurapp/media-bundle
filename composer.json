@@ -12,25 +12,25 @@
         }
     ],
     "require": {
-        "php": ">=8.3",
+        "php": ">=8.4",
         "ext-gd": "*",
         "ext-fileinfo": "*",
-        "symfony/mime": "^7.0",
-        "symfony/uid": "^7.0",
-        "symfony/dependency-injection": "^7.0",
-        "symfony/http-kernel": "^7.0",
-        "symfony/framework-bundle": "^7.0",
-        "symfony/console": "^7.0",
-        "doctrine/orm": "^3.3.0",
-        "doctrine/doctrine-bundle": "^2.10",
-        "cesurapp/storage-bundle": "^1.0",
+        "symfony/mime": "^8.0",
+        "symfony/uid": "^8.0",
+        "symfony/dependency-injection": "^8.0",
+        "symfony/http-kernel": "^8.0",
+        "symfony/framework-bundle": "^8.0",
+        "symfony/console": "^8.0",
+        "doctrine/orm": "^3.5.0",
+        "doctrine/doctrine-bundle": "^3.1.0",
+        "cesurapp/storage-bundle": "^1.2",
         "claviska/simpleimage": "^4.2"
     },
     "require-dev": {
-        "php-cs-fixer/shim": "^3.69",
-        "symfony/test-pack": "^1.1",
-        "phpstan/phpstan": "^2.1.5",
-        "zenstruck/foundry": "^2.6"
+        "php-cs-fixer/shim": "^v3.91.3",
+        "phpstan/phpstan": "^2.1.33",
+        "zenstruck/foundry": "^2.8.1",
+        "phpunit/phpunit": "^12.5"
     },
     "autoload": {
         "psr-4": {

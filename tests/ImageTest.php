@@ -10,14 +10,14 @@ class ImageTest extends WebTestCase
     public function testCrop(): void
     {
         // JPG
-        $image = (new SimpleImage())
+        $image = new SimpleImage()
             ->fromString(file_get_contents(__DIR__.'/resources/image.jpg'))
             ->crop(0, 0, 100, 100);
         $this->assertEquals(100, $image->getWidth());
         $this->assertEquals(100, $image->getHeight());
 
         // PNG
-        $image = (new SimpleImage())
+        $image = new SimpleImage()
             ->fromString(file_get_contents(__DIR__.'/resources/image.png'))
             ->crop(0, 0, 100, 100);
         $this->assertEquals(100, $image->getWidth());
@@ -27,13 +27,13 @@ class ImageTest extends WebTestCase
     public function testCompress(): void
     {
         // JPG
-        $image = (new SimpleImage())->fromString(file_get_contents(__DIR__.'/resources/image.jpg'));
+        $image = new SimpleImage()->fromString(file_get_contents(__DIR__.'/resources/image.jpg'));
         $image->toFile(sys_get_temp_dir().'/image.jpg', null, 75);
         $this->assertLessThanOrEqual(327626, filesize(sys_get_temp_dir().'/image.jpg'));
         unlink(sys_get_temp_dir().'/image.jpg');
 
         // PNG to JPG
-        $image = (new SimpleImage())->fromString(file_get_contents(__DIR__.'/resources/image.png'));
+        $image = new SimpleImage()->fromString(file_get_contents(__DIR__.'/resources/image.png'));
         $image->toFile(sys_get_temp_dir().'/image.jpg', 'image/jpeg', 75);
         $this->assertLessThanOrEqual(62302, filesize(sys_get_temp_dir().'/image.jpg'));
         unlink(sys_get_temp_dir().'/image.jpg');
