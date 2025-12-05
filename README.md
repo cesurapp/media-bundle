@@ -8,7 +8,7 @@ You can use the same media with multiple tables. You must create a new trait for
 Imagick compression, resizing, conversion support is available for image files.
 
 ### Install
-Required Symfony 7
+Required Symfony 8
 ```
 composer req cesurapp/media-bundle
 ```
