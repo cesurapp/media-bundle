@@ -3,77 +3,141 @@
 [![App Tester](https://github.com/cesurapp/media-bundle/actions/workflows/testing.yaml/badge.svg)](https://github.com/cesurapp/media-bundle/actions/workflows/testing.yaml)
 [![Software License](https://img.shields.io/badge/license-MIT-brightgreen.svg?logo=Unlicense)](LICENSE.md)
 
-It is used to keep track of files. When media is deleted, it is also automatically removed from storage.
-You can use the same media with multiple tables. You must create a new trait for each column.
-Imagick compression, resizing, conversion support is available for image files.
+Media management bundle for Symfony with automatic storage integration and reference counting.
 
-### Install
-Required Symfony 8
+**Features:**
+- Automatic file tracking with reference counting
+- Auto-cleanup when media is deleted or unused
+- Image compression, resizing, and format conversion
+- Multiple upload methods (HTTP, Base64, URL)
+- Support for multiple media columns per entity
+- Built on top of `cesurapp/storage-bundle`
+
+## Installation
+
+**Requirements:**
+- PHP 8.4+
+- Symfony 8.0+
+
+```bash
+composer require cesurapp/media-bundle
 ```
-composer req cesurapp/media-bundle
-```
 
-### Commands
+## Quick Start
 
-```shell
-bin/console media:status     # View Media Storage Details
-```
-
-### Create Media Column
-
-__Note:__ Copy the "MediaTrait" for the new column.
+### 1. Add Media Column to Entity
 
 ```php
-use \Cesurapp\MediaBundle\Entity\MediaInterface;
-use \Cesurapp\MediaBundle\Entity\MediaTrait;
+use Cesurapp\MediaBundle\Entity\{MediaInterface, MediaTrait};
 
-class UserEntity implements MediaInterface {
+class User implements MediaInterface
+{
     use MediaTrait;
 
-    /**
-     * For a single column, this is not necessary.
-     */
-    //public function getMediaColumns(): array {
-    //    return ['media'];
-    //}
-}
-```
-
-### Upload Image
-
-```php
-use \Cesurapp\MediaBundle\Manager\MediaManager;
-
-class ExampleController  {
-    public function index(Request $request, MediaManager $manager): void {
-        $images = $manager
-            ->setImageCompress(true)         // Enable Image Compressor
-            ->setImageConvertJPG(true)       // PNG to JPG Convertor
-            ->setImageQuality(75)            // Default Image Quality
-            ->setImageSize(1024,768)         // Maximum Image Size
-            //->uploadFile($request)                         // HTTP File Upload
-            //->uploadBase64($request, ['base64DataKey'], ['base64DataKey' => ['image/png']])    // Json Base64 Image Upload
-            ->uploadLink($request, ['imageLinkKey'], ['imageLinkKey' => ['image/png']])         // Image Link Upload
+    // For single column, getMediaColumns() is optional
+    // For multiple columns, override:
+    public function getMediaColumns(): array
+    {
+        return ['media', 'avatar'];
     }
 }
 ```
 
-### Imagick Helper
+**Note:** Copy and rename `MediaTrait` for each additional media column (e.g., `LogoTrait`, `AvatarTrait`).
 
-Compress JPG:
-
-```php
-\Cesurapp\MediaBundle\Compressor\Image::create(file_get_contents('image.jpg'))->save('save_path.jpg', 'jpg', 75);
-```
-
-Convert & Compress to JPG:
+### 2. Upload Media
 
 ```php
-\Cesurapp\MediaBundle\Compressor\Image::create(file_get_contents('image.png'))->save('save_path.jpg', 'jpg', 75);
+use Cesurapp\MediaBundle\Manager\MediaManager;
+use Symfony\Component\HttpFoundation\Request;
+
+class UploadController
+{
+    public function upload(Request $request, MediaManager $manager): void
+    {
+        // Configure image processing
+        $medias = $manager
+            ->setImageCompress(true)        // Enable compression
+            ->setImageConvertJPG(true)      // Convert PNG/JPEG to JPG
+            ->setImageQuality(75)           // JPEG quality (0-100)
+            ->setImageSize(1280, 720)       // Max dimensions (aspect ratio preserved)
+            ->uploadFile($request);         // Upload HTTP files
+
+        // Attach to entity
+        $user->addMedias($medias);
+    }
+}
 ```
 
-Resize Aspect Ratio & Convert JPG:
+### 3. Upload Methods
 
 ```php
-\Cesurapp\MediaBundle\Compressor\Image::create(file_get_contents('image.png'))->resize(100, 100)->output('jpg', 75);
+// HTTP file upload
+$medias = $manager->uploadFile($request, ['avatar', 'photos']);
+
+// Base64 upload with MIME validation
+$medias = $manager->uploadBase64(
+    $request,
+    ['image'],
+    ['image' => ['image/png', 'image/jpeg']]
+);
+
+// Remote URL download
+$medias = $manager->uploadLink(
+    $request,
+    ['imageUrl'],
+    ['imageUrl' => ['image/png']]
+);
+
+// Direct content creation
+$media = $manager->createMedia('image/png', 'png', $content, strlen($content));
 ```
+
+### 4. Access Media
+
+```php
+// Get all media
+$allMedia = $user->getMedia();
+
+// Get first media
+$firstMedia = $user->getMedia()[0] ?? null;
+
+// Using helper method (available in LogoTrait, etc.)
+$logo = $user->getLogoFirst();
+
+// Serve as HTTP response
+return $media->getResponse($storage);
+
+// Get file content
+$content = $media->getContent($storage);
+
+// Get file path
+$path = $media->getPath(); // e.g., "2025/01/20/01hmz3k4.jpg"
+```
+
+### 5. Delete Media
+
+```php
+// Manual deletion
+$em->remove($media);
+$em->flush(); // File automatically deleted from storage
+
+// Remove from entity (auto-cleanup via counter)
+$user->removeMedia($media);
+$em->flush(); // Media deleted if no other references
+
+// Entity deletion (cascading cleanup)
+$em->remove($user);
+$em->flush(); // All associated media auto-deleted when counter reaches 0
+```
+
+## Commands
+
+```bash
+# View media storage statistics
+bin/console media:status
+```
+
+## Documentation
+
+For detailed usage, see [GUIDELINES.md](GUIDELINES.md)
