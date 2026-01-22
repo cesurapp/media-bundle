@@ -131,7 +131,6 @@ $medias = $mediaManager
 - `path` (string, storage path)
 - `mime` (string, MIME type)
 - `size` (int, bytes)
-- `approved` (bool, default `true`)
 - `counter` (int, reference count, default `1`)
 - `data` (array, JSON field for custom metadata)
 - `storage` (string, storage provider key)
@@ -150,7 +149,7 @@ $media->getExtension(); // Extracted from path
 
 **Auto-generated vs custom:**
 - Auto: `id`, `path`, `mime`, `size`, `storage`, `createdAt`, `counter`
-- Custom: `data` (JSON), `owner`, `approved`
+- Custom: `data` (JSON), `owner`
 
 **Example:**
 ```php
@@ -158,7 +157,6 @@ $media->setData(['width' => 1920, 'height' => 1080, 'dominant_color' => '#ff5733
 $metadata = $media->getData();
 
 $media->setOwner($user->getId());
-$media->setApproved(false);
 ```
 
 ## 6. Media Deletion & Cleanup

@@ -26,9 +26,6 @@ class Media
     #[ORM\Column(type: 'integer')]
     private int $size;
 
-    #[ORM\Column(type: 'boolean')]
-    private bool $approved = true;
-
     #[ORM\Column(type: 'integer')]
     private int $counter = 1;
 
@@ -87,18 +84,6 @@ class Media
     public function setSize(int $size): self
     {
         $this->size = $size;
-
-        return $this;
-    }
-
-    public function isApproved(): bool
-    {
-        return $this->approved;
-    }
-
-    public function setApproved(bool $approved): self
-    {
-        $this->approved = $approved;
 
         return $this;
     }

@@ -40,7 +40,6 @@ final class MediaFactory extends PersistentProxyObjectFactory
             ->createMedia('image/png', 'png', $content, strlen($content), false);
 
         return [
-            'approved' => true,
             'counter' => 1,
             'mime' => $media->getMime(),
             'path' => $media->getPath(),
