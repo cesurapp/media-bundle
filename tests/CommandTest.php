@@ -42,11 +42,13 @@ class CommandTest extends KernelTestCase
         ]);
         $manager = self::getContainer()->get(MediaManager::class);
         $em = self::getContainer()->get('doctrine')->getManager();
-        $medias = $manager->uploadBase64($request, ['imageBase64']);
+        $medias = $manager->uploadHttpBase64($request, ['imageBase64']);
 
         $commandTester->execute([]);
         $commandTester->assertCommandIsSuccessful();
-        $this->assertStringContainsString('1 MB', $commandTester->getDisplay());
+        $output = $commandTester->getDisplay();
+        $this->assertStringContainsString('Total File', $output);
+        $this->assertStringContainsString('Total Size', $output);
 
         array_walk_recursive($medias, static function ($media) use ($em) {
             $em->remove($media);

@@ -18,8 +18,16 @@ readonly class MediaRemovedListener
 
     public function postRemove(Media $media, PostRemoveEventArgs $event): void
     {
-        if (!$this->storage->device($media->getStorage())->delete($media->getPath())) {
-            $this->logger->error('Media File Remove Failed: '.$media->getStorage().'::'.$media->getPath());
+        if (function_exists('go')) {
+            go(function () use ($media) {
+                if (!$this->storage->device($media->getStorage())->delete($media->getPath())) {
+                    $this->logger->error('Media File Remove Failed: '.$media->getStorage().'::'.$media->getPath());
+                }
+            });
+        } else {
+            if (!$this->storage->device($media->getStorage())->delete($media->getPath())) {
+                $this->logger->error('Media File Remove Failed: '.$media->getStorage().'::'.$media->getPath());
+            }
         }
     }
 }

@@ -54,6 +54,22 @@ class Kernel extends BaseKernel
                 // Keep a minimal, compatible ORM configuration for tests.
                 'auto_mapping' => true,
                 'naming_strategy' => 'doctrine.orm.naming_strategy.underscore_number_aware',
+                'mappings' => [
+                    'MediaBundle' => [
+                        'type' => 'attribute',
+                        'is_bundle' => false,
+                        'dir' => '%kernel.project_dir%/src/Entity',
+                        'prefix' => 'Cesurapp\MediaBundle\Entity',
+                        'alias' => 'MediaBundle',
+                    ],
+                    'MediaBundleTests' => [
+                        'type' => 'attribute',
+                        'is_bundle' => false,
+                        'dir' => '%kernel.project_dir%/tests/Entity',
+                        'prefix' => 'Cesurapp\MediaBundle\Tests\Entity',
+                        'alias' => 'MediaBundleTests',
+                    ],
+                ],
             ],
         ]);
     }

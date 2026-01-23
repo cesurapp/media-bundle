@@ -37,7 +37,8 @@ final class MediaFactory extends PersistentProxyObjectFactory
         $media = $this->mediaManager
             ->setImageCompress(false)
             ->setImageConvertJPG(false)
-            ->createMedia('image/png', 'png', $content, strlen($content), false);
+            ->createMedia('image/png', 'png', $content, strlen($content));
+        $this->mediaManager->save($media);
 
         return [
             'counter' => 1,

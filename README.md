@@ -28,7 +28,7 @@ composer require cesurapp/media-bundle
 ### 1. Add Media Column to Entity
 
 ```php
-use Cesurapp\MediaBundle\Entity\{MediaInterface, MediaTrait};
+use Cesurapp\MediaBundle\Entity\{MediaInterface,Traits\MediaTrait};
 
 class User implements MediaInterface
 {

@@ -4,6 +4,7 @@ namespace Cesurapp\MediaBundle\Tests;
 
 use Cesurapp\MediaBundle\Entity\Media;
 use Cesurapp\MediaBundle\Manager\MediaManager;
+use Cesurapp\MediaBundle\Tests\Entity\TestEntity;
 use Cesurapp\StorageBundle\Storage\Storage;
 use Doctrine\ORM\Tools\SchemaTool;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
@@ -39,7 +40,8 @@ class ManagerTest extends KernelTestCase
         $em = self::getContainer()->get('doctrine')->getManager();
 
         // Upload All
-        $medias = $manager->uploadFile($request);
+        $medias = $manager->uploadHttpFile($request);
+        $manager->save($medias);
 
         $this->assertInstanceOf(Media::class, $medias[0]);
         $this->assertInstanceOf(Media::class, $medias[1]);
@@ -67,7 +69,8 @@ class ManagerTest extends KernelTestCase
         $em = self::getContainer()->get('doctrine')->getManager();
 
         // Upload All
-        $medias = $manager->uploadBase64($request, ['imageBase64'], ['imageBase64' => ['image/png']]);
+        $medias = $manager->uploadHttpBase64($request, ['imageBase64'], ['imageBase64' => ['image/png']]);
+        $manager->save($medias);
 
         $this->assertInstanceOf(Media::class, $medias['imageBase64'][0]);
         $this->assertTrue(
@@ -96,7 +99,8 @@ class ManagerTest extends KernelTestCase
         $em = self::getContainer()->get('doctrine')->getManager();
 
         // Upload All
-        $medias = $manager->uploadLink($request, ['filesLink'], ['filesLink' => ['image/png']]);
+        $medias = $manager->uploadHttpLink($request, ['filesLink'], ['filesLink' => ['image/png']]);
+        $manager->save($medias);
 
         $this->assertInstanceOf(Media::class, $medias['filesLink'][0]);
         $this->assertTrue($storage->device($medias['filesLink'][0]->getStorage())->exists($medias['filesLink'][0]->getPath()));
@@ -109,6 +113,229 @@ class ManagerTest extends KernelTestCase
         $this->assertFalse($storage->device($medias['filesLink'][0]->getStorage())->exists($medias['filesLink'][0]->getPath()));
     }
 
+    public function testUploadLink2(): void
+    {
+        $request = new Request();
+        $request->request->add([
+            'filesLink' => 'https://www.google.com.tr/images/branding/googlelogo/1x/googlelogo_light_color_272x92dp.png',
+        ]);
+
+        $manager = self::getContainer()->get(MediaManager::class);
+        $storage = self::getContainer()->get(Storage::class);
+        $em = self::getContainer()->get('doctrine')->getManager();
+
+        // Upload All
+        $medias = $manager->uploadHttpLink($request, ['filesLink'], ['filesLink' => ['image/png']]);
+        $manager->save($medias);
+        $mediaId = $medias['filesLink'][0]->getId()->toString();
+
+        // Create Test Entity
+        $testEntity = new TestEntity();
+        $testEntity->setMedia($medias);
+        $em->persist($testEntity);
+        $em->flush();
+
+        // Remove Test Entity
+        $em->remove($testEntity);
+        $em->flush();
+
+        // Reload Media
+        $refreshedMedia = $em->getRepository(Media::class)->findAll();
+        $this->assertEmpty($refreshedMedia);
+    }
+
+    public function testUploadFromBase64(): void
+    {
+        $manager = self::getContainer()->get(MediaManager::class);
+        $storage = self::getContainer()->get(Storage::class);
+        $em = self::getContainer()->get('doctrine')->getManager();
+
+        $base64 = 'iVBORw0KGgoAAAANSUhEUgAAABgAAAAYCAYAAADgdz34AAAABHNCSVQICAgIfAhkiAAAAAlwSFlzAAAApgAAAKYB3X3/OAAAABl0RVh0U29mdHdhcmUAd3d3Lmlua3NjYXBlLm9yZ5vuPBoAAANCSURBVEiJtZZPbBtFFMZ/M7ubXdtdb1xSFyeilBapySVU8h8OoFaooFSqiihIVIpQBKci6KEg9Q6H9kovIHoCIVQJJCKE1ENFjnAgcaSGC6rEnxBwA04Tx43t2FnvDAfjkNibxgHxnWb2e/u992bee7tCa00YFsffekFY+nUzFtjW0LrvjRXrCDIAaPLlW0nHL0SsZtVoaF98mLrx3pdhOqLtYPHChahZcYYO7KvPFxvRl5XPp1sN3adWiD1ZAqD6XYK1b/dvE5IWryTt2udLFedwc1+9kLp+vbbpoDh+6TklxBeAi9TL0taeWpdmZzQDry0AcO+jQ12RyohqqoYoo8RDwJrU+qXkjWtfi8Xxt58BdQuwQs9qC/afLwCw8tnQbqYAPsgxE1S6F3EAIXux2oQFKm0ihMsOF71dHYx+f3NND68ghCu1YIoePPQN1pGRABkJ6Bus96CutRZMydTl+TvuiRW1m3n0eDl0vRPcEysqdXn+jsQPsrHMquGeXEaY4Yk4wxWcY5V/9scqOMOVUFthatyTy8QyqwZ+kDURKoMWxNKr2EeqVKcTNOajqKoBgOE28U4tdQl5p5bwCw7BWquaZSzAPlwjlithJtp3pTImSqQRrb2Z8PHGigD4RZuNX6JYj6wj7O4TFLbCO/Mn/m8R+h6rYSUb3ekokRY6f/YukArN979jcW+V/S8g0eT/N3VN3kTqWbQ428m9/8k0P/1aIhF36PccEl6EhOcAUCrXKZXXWS3XKd2vc/TRBG9O5ELC17MmWubD2nKhUKZa26Ba2+D3P+4/MNCFwg59oWVeYhkzgN/JDR8deKBoD7Y+ljEjGZ0sosXVTvbc6RHirr2reNy1OXd6pJsQ+gqjk8VWFYmHrwBzW/n+uMPFiRwHB2I7ih8ciHFxIkd/3Omk5tCDV1t+2nNu5sxxpDFNx+huNhVT3/zMDz8usXC3ddaHBj1GHj/As08fwTS7Kt1HBTmyN29vdwAw+/wbwLVOJ3uAD1wi/dUH7Qei66PfyuRj4Ik9is+hglfbkbfR3cnZm7chlUWLdwmprtCohX4HUtlOcQjLYCu+fzGJH2QRKvP3UNz8bWk1qMxjGTOMThZ3kvgLI5AzFfo379UAAAAASUVORK5CYII=';
+
+        // Test without MIME validation - disable conversion to keep original format
+        $media = $manager->setImageConvertJPG(false)->uploadFromBase64($base64);
+        $manager->save($media);
+
+        $this->assertInstanceOf(Media::class, $media);
+        $this->assertEquals('image/png', $media->getMime());
+        $this->assertTrue($storage->device($media->getStorage())->exists($media->getPath()));
+
+        $em->remove($media);
+        $em->flush();
+
+        $this->assertFalse($storage->device($media->getStorage())->exists($media->getPath()));
+    }
+
+    public function testUploadFromBase64WithMimeValidation(): void
+    {
+        $manager = self::getContainer()->get(MediaManager::class);
+        $base64 = 'iVBORw0KGgoAAAANSUhEUgAAABgAAAAYCAYAAADgdz34AAAABHNCSVQICAgIfAhkiAAAAAlwSFlzAAAApgAAAKYB3X3/OAAAABl0RVh0U29mdHdhcmUAd3d3Lmlua3NjYXBlLm9yZ5vuPBoAAANCSURBVEiJtZZPbBtFFMZ/M7ubXdtdb1xSFyeilBapySVU8h8OoFaooFSqiihIVIpQBKci6KEg9Q6H9kovIHoCIVQJJCKE1ENFjnAgcaSGC6rEnxBwA04Tx43t2FnvDAfjkNibxgHxnWb2e/u992bee7tCa00YFsffekFY+nUzFtjW0LrvjRXrCDIAaPLlW0nHL0SsZtVoaF98mLrx3pdhOqLtYPHChahZcYYO7KvPFxvRl5XPp1sN3adWiD1ZAqD6XYK1b/dvE5IWryTt2udLFedwc1+9kLp+vbbpoDh+6TklxBeAi9TL0taeWpdmZzQDry0AcO+jQ12RyohqqoYoo8RDwJrU+qXkjWtfi8Xxt58BdQuwQs9qC/afLwCw8tnQbqYAPsgxE1S6F3EAIXux2oQFKm0ihMsOF71dHYx+f3NND68ghCu1YIoePPQN1pGRABkJ6Bus96CutRZMydTl+TvuiRW1m3n0eDl0vRPcEysqdXn+jsQPsrHMquGeXEaY4Yk4wxWcY5V/9scqOMOVUFthatyTy8QyqwZ+kDURKoMWxNKr2EeqVKcTNOajqKoBgOE28U4tdQl5p5bwCw7BWquaZSzAPlwjlithJtp3pTImSqQRrb2Z8PHGigD4RZuNX6JYj6wj7O4TFLbCO/Mn/m8R+h6rYSUb3ekokRY6f/YukArN979jcW+V/S8g0eT/N3VN3kTqWbQ428m9/8k0P/1aIhF36PccEl6EhOcAUCrXKZXXWS3XKd2vc/TRBG9O5ELC17MmWubD2nKhUKZa26Ba2+D3P+4/MNCFwg59oWVeYhkzgN/JDR8deKBoD7Y+ljEjGZ0sosXVTvbc6RHirr2reNy1OXd6pJsQ+gqjk8VWFYmHrwBzW/n+uMPFiRwHB2I7ih8ciHFxIkd/3Omk5tCDV1t+2nNu5sxxpDFNx+huNhVT3/zMDz8usXC3ddaHBj1GHj/As08fwTS7Kt1HBTmyN29vdwAw+/wbwLVOJ3uAD1wi/dUH7Qei66PfyuRj4Ik9is+hglfbkbfR3cnZm7chlUWLdwmprtCohX4HUtlOcQjLYCu+fzGJH2QRKvP3UNz8bWk1qMxjGTOMThZ3kvgLI5AzFfo379UAAAAASUVORK5CYII=';
+
+        // Test with valid MIME
+        $media = $manager->uploadFromBase64($base64, ['image/png']);
+        $this->assertInstanceOf(Media::class, $media);
+
+        // Test with invalid MIME - should throw exception
+        $this->expectException(\Cesurapp\MediaBundle\Exception\FileValidationException::class);
+        $manager->uploadFromBase64($base64, ['image/jpeg']);
+    }
+
+    public function testUploadFromUploadedFile(): void
+    {
+        $manager = self::getContainer()->get(MediaManager::class);
+        $storage = self::getContainer()->get(Storage::class);
+        $em = self::getContainer()->get('doctrine')->getManager();
+
+        $uploadedFile = new UploadedFile(__DIR__.'/resources/image.png', 'image.png');
+
+        // Test without MIME validation
+        $media = $manager->uploadFromUploadedFile($uploadedFile);
+        $manager->save($media);
+
+        $this->assertInstanceOf(Media::class, $media);
+        $this->assertTrue($storage->device($media->getStorage())->exists($media->getPath()));
+
+        $em->remove($media);
+        $em->flush();
+
+        $this->assertFalse($storage->device($media->getStorage())->exists($media->getPath()));
+    }
+
+    public function testUploadFromUploadedFileWithMimeValidation(): void
+    {
+        $manager = self::getContainer()->get(MediaManager::class);
+        $uploadedFile = new UploadedFile(__DIR__.'/resources/image.png', 'image.png');
+
+        // Test with valid MIME
+        $media = $manager->uploadFromUploadedFile($uploadedFile, ['image/png']);
+        $this->assertInstanceOf(Media::class, $media);
+
+        // Test with invalid MIME - should throw exception
+        $this->expectException(\Cesurapp\MediaBundle\Exception\FileValidationException::class);
+        $manager->uploadFromUploadedFile($uploadedFile, ['image/jpeg']);
+    }
+
+    public function testUploadFromUrl(): void
+    {
+        $manager = self::getContainer()->get(MediaManager::class);
+        $storage = self::getContainer()->get(Storage::class);
+        $em = self::getContainer()->get('doctrine')->getManager();
+
+        $url = 'https://www.google.com.tr/images/branding/googlelogo/1x/googlelogo_light_color_272x92dp.png';
+
+        // Test without MIME validation
+        $media = $manager->uploadFromUrl($url);
+        $manager->save($media);
+
+        $this->assertInstanceOf(Media::class, $media);
+        $this->assertTrue($storage->device($media->getStorage())->exists($media->getPath()));
+
+        $em->remove($media);
+        $em->flush();
+
+        $this->assertFalse($storage->device($media->getStorage())->exists($media->getPath()));
+    }
+
+    public function testUploadFromUrlWithMimeValidation(): void
+    {
+        $manager = self::getContainer()->get(MediaManager::class);
+        $url = 'https://www.google.com.tr/images/branding/googlelogo/1x/googlelogo_light_color_272x92dp.png';
+
+        // Test with valid MIME
+        $media = $manager->uploadFromUrl($url, ['image/png']);
+        $this->assertInstanceOf(Media::class, $media);
+
+        // Test with invalid MIME - should throw exception
+        $this->expectException(\Cesurapp\MediaBundle\Exception\FileValidationException::class);
+        $manager->uploadFromUrl($url, ['image/jpeg']);
+    }
+
+    public function testUploadFromContent(): void
+    {
+        $manager = self::getContainer()->get(MediaManager::class);
+        $storage = self::getContainer()->get(Storage::class);
+        $em = self::getContainer()->get('doctrine')->getManager();
+
+        $content = file_get_contents(__DIR__.'/resources/image.png');
+
+        // Test without MIME validation - disable conversion to keep original format
+        $media = $manager->setImageConvertJPG(false)->uploadFromContent($content, 'image/png', 'png');
+        $manager->save($media);
+
+        $this->assertInstanceOf(Media::class, $media);
+        $this->assertEquals('image/png', $media->getMime());
+        $this->assertTrue($storage->device($media->getStorage())->exists($media->getPath()));
+
+        $em->remove($media);
+        $em->flush();
+
+        $this->assertFalse($storage->device($media->getStorage())->exists($media->getPath()));
+    }
+
+    public function testUploadFromContentWithMimeValidation(): void
+    {
+        $manager = self::getContainer()->get(MediaManager::class);
+        $content = file_get_contents(__DIR__.'/resources/image.png');
+
+        // Test with valid MIME
+        $media = $manager->uploadFromContent($content, 'image/png', 'png', ['image/png']);
+        $this->assertInstanceOf(Media::class, $media);
+
+        // Test with invalid MIME - should throw exception
+        $this->expectException(\Cesurapp\MediaBundle\Exception\FileValidationException::class);
+        $manager->uploadFromContent($content, 'image/png', 'png', ['image/jpeg']);
+    }
+
+    public function testImageConversionSettings(): void
+    {
+        $manager = self::getContainer()->get(MediaManager::class);
+        $storage = self::getContainer()->get(Storage::class);
+        $em = self::getContainer()->get('doctrine')->getManager();
+
+        $uploadedFile = new UploadedFile(__DIR__.'/resources/image.png', 'image.png');
+
+        // Test with JPG conversion enabled
+        $media = $manager
+            ->setImageConvertJPG(true)
+            ->setImageCompress(true)
+            ->setImageQuality(80)
+            ->setImageSize(640, 480)
+            ->uploadFromUploadedFile($uploadedFile);
+
+        $manager->save($media);
+
+        $this->assertInstanceOf(Media::class, $media);
+        $this->assertEquals('image/jpeg', $media->getMime());
+        $this->assertStringContainsString('.jpg', $media->getPath());
+        $this->assertTrue($storage->device($media->getStorage())->exists($media->getPath()));
+
+        $em->remove($media);
+        $em->flush();
+    }
+
+    public function testImageCompressionDisabled(): void
+    {
+        $manager = self::getContainer()->get(MediaManager::class);
+        $storage = self::getContainer()->get(Storage::class);
+        $em = self::getContainer()->get('doctrine')->getManager();
+
+        $uploadedFile = new UploadedFile(__DIR__.'/resources/image.png', 'image.png');
+
+        // Test with compression disabled
+        $media = $manager
+            ->setImageCompress(false)
+            ->setImageConvertJPG(false)
+            ->uploadFromUploadedFile($uploadedFile);
+
+        $manager->save($media);
+
+        $this->assertInstanceOf(Media::class, $media);
+        $this->assertTrue($storage->device($media->getStorage())->exists($media->getPath()));
+
+        $em->remove($media);
+        $em->flush();
+    }
+
     private function initDatabase(KernelInterface $kernel): void
     {
         if ('test' !== $kernel->getEnvironment()) {
@@ -118,6 +345,7 @@ class ManagerTest extends KernelTestCase
         $entityManager = $kernel->getContainer()->get('doctrine')->getManager();
         $metaData = $entityManager->getMetadataFactory()->getAllMetadata();
         $schemaTool = new SchemaTool($entityManager);
+        $schemaTool->dropSchema($metaData);
         $schemaTool->updateSchema($metaData);
     }
 }

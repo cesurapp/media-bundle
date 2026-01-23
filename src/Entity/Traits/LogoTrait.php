@@ -1,7 +1,8 @@
 <?php
 
-namespace Cesurapp\MediaBundle\Entity;
+namespace Cesurapp\MediaBundle\Entity\Traits;
 
+use Cesurapp\MediaBundle\Entity\Media;
 use Doctrine\ORM\Mapping as ORM;
 
 /** @phpstan-ignore-next-line */
@@ -18,18 +19,26 @@ trait LogoTrait
         return $this->logo;
     }
 
-    public function addLogo(Media $logo): self
+    public function setLogo(array $logos): self
     {
-        if (!in_array($logo, $this->logo, true)) {
-            $this->logo[] = $logo;
-        }
+        $this->logo = [];
+
+        array_walk_recursive($logos, fn (Media $logo) => $this->logo[] = $logo);
 
         return $this;
     }
 
-    public function addLogos(array $logos): self
+    public function addLogo(Media|array $logo): self
     {
-        array_walk_recursive($logos, fn (Media $logo) => $this->addLogo($logo));
+        if (is_array($logo)) {
+            array_walk_recursive($logo, fn (Media $logo) => $this->addLogo($logo));
+
+            return $this;
+        }
+
+        if (!in_array($logo, $this->logo, true)) {
+            $this->logo[] = $logo;
+        }
 
         return $this;
     }
@@ -39,15 +48,6 @@ trait LogoTrait
         if ($key = array_search($logo, $this->logo, true)) {
             unset($this->logo[$key]);
         }
-
-        return $this;
-    }
-
-    public function setLogo(array $logos): self
-    {
-        $this->logo = [];
-
-        array_walk_recursive($logos, fn (Media $logo) => $this->logo[] = $logo);
 
         return $this;
     }

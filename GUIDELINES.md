@@ -78,8 +78,9 @@ $media = $mediaManager->createMedia('image/png', 'png', $content, strlen($conten
 - Empty collections: `null` or `[]`
 
 **Example:**
+
 ```php
-use Cesurapp\MediaBundle\Entity\{MediaInterface, MediaTrait};
+use Cesurapp\MediaBundle\Entity\{MediaInterface,Traits\MediaTrait};
 
 class User implements MediaInterface {
     use MediaTrait;

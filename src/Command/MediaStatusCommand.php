@@ -23,16 +23,13 @@ class MediaStatusCommand extends Command
             ->select('COUNT(q.id)')->getQuery()->getSingleScalarResult();
         $totalSize = $this->repository->createQueryBuilder('q')
             ->select('SUM(q.size)')->getQuery()->getSingleScalarResult();
-        $totalUsedMedia = $this->repository->createQueryBuilder('q')
-            ->select('SUM(q.counter)')->getQuery()->getSingleScalarResult();
 
         (new Table($output))
-            ->setHeaders(['Total File', 'Total Size', 'Total Used Media'])
+            ->setHeaders(['Total File', 'Total Size'])
             ->setRows([
                 [
                     $totalFile,
                     sprintf('%s MB / %s GB', number_format(round($totalSize / 1000)), number_format(round($totalSize / 1000 / 1000))),
-                    $totalUsedMedia,
                 ],
             ])
             ->setHorizontal()

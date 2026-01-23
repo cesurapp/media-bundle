@@ -8,6 +8,7 @@ use claviska\SimpleImage;
 use Doctrine\ORM\EntityManagerInterface;
 use Cesurapp\MediaBundle\Entity\Media;
 use Psr\Log\LoggerInterface;
+use Symfony\Component\HttpFoundation\File\UploadedFile;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Mime\MimeTypes;
 use Symfony\Component\Uid\Ulid;
@@ -71,42 +72,54 @@ class MediaManager
     }
 
     /**
+     * Save Media entity or array of Media entities to a database.
+     *
+     * @param Media|Media[] $media
+     */
+    public function save(Media|array $media): void
+    {
+        $items = is_array($media) ? $media : [$media];
+
+        foreach ($items as $item) {
+            if (is_array($item)) { // @phpstan-ignore-line
+                foreach ($item as $mediaItem) {
+                    $this->em->persist($mediaItem);
+                }
+                continue;
+            }
+            $this->em->persist($item);
+        }
+
+        $this->em->flush();
+    }
+
+    /**
      * Upload HTTP File Request.
      *
      * @return Media[]
      */
-    public function uploadFile(Request $request, ?array $keys = null): array
+    public function uploadHttpFile(Request $request, ?array $keys = null): array
     {
         $data = $keys ? array_intersect_key($request->files->all(), array_flip($keys)) : $request->files->all();
 
         // Convert to Media Entity
         array_walk_recursive($data, function (&$item, $key) {
             try {
-                $item = $this->createMedia(
-                    $item->getMimeType(),
-                    $item->getExtension(),
-                    $item->getContent(),
-                    $item->getSize(),
-                    true,
-                    $key
-                );
+                $item = $this->createMedia($item->getMimeType(), $item->getExtension(), $item->getContent(), $item->getSize(), $key);
             } catch (\Exception $exception) {
                 $this->logger->error('HTTP File Upload Failed: '.$exception->getMessage());
             }
         });
 
-        // Save
-        $this->em->flush();
-
         return $data;
     }
 
     /**
-     * @return Media[][]
+     * Upload HTTP Base64 Request.
      *
-     * @throws FileValidationException
+     * @return Media[][]
      */
-    public function uploadBase64(Request $request, array $keys, ?array $allowedMimes = null): array
+    public function uploadHttpBase64(Request $request, array $keys, ?array $allowedMimes = null): array
     {
         $data = array_intersect_key($request->request->all(), array_flip($keys));
 
@@ -122,21 +135,21 @@ class MediaManager
                     throw new FileValidationException(code: 422, errors: [$key => ['Invalid file type.']]);
                 }
                 $extension = (new MimeTypes())->getExtensions($mimeType)[0];
-                $items[$index] = $this->createMedia($mimeType, $extension, $file, strlen($file), true, $key);
+                $items[$index] = $this->createMedia($mimeType, $extension, $file, strlen($file), $key);
             }
 
             $files = $items;
         });
-        // Save
-        $this->em->flush();
 
-        return $data ?? []; // @phpstan-ignore-line
+        return $data;
     }
 
     /**
+     * Upload HTTP Link Request.
+     *
      * @return Media[][]
      */
-    public function uploadLink(Request $request, array $keys, ?array $allowedMimes = null): array
+    public function uploadHttpLink(Request $request, array $keys, ?array $allowedMimes = null): array
     {
         $data = array_intersect_key($request->request->all(), array_flip($keys));
 
@@ -152,7 +165,7 @@ class MediaManager
                         throw new FileValidationException(code: 422, errors: [$key => ['Invalid file type.']]);
                     }
                     $extension = (new MimeTypes())->getExtensions($mimeType)[0];
-                    $items[$index] = $this->createMedia($mimeType, $extension, $file, strlen($file), true, $key);
+                    $items[$index] = $this->createMedia($mimeType, $extension, $file, strlen($file), $key);
                 } catch (\Exception $exception) {
                     $this->logger->error('Link File Upload Failed: '.$exception->getMessage());
                 }
@@ -161,13 +174,71 @@ class MediaManager
             $files = $items;
         });
 
-        // Save
-        $this->em->flush();
-
         return $data;
     }
 
-    public function createMedia(string $mimeType, string $extension, string $content, int $size, bool $persist = true, ?string $reqKey = null): Media
+    /**
+     * Upload from Base64 string.
+     */
+    public function uploadFromBase64(string $base64, ?array $allowedMimes = null): Media
+    {
+        $data = explode(',', $base64);
+        $file = base64_decode($data[1] ?? $data[0]);
+        $mimeType = finfo_buffer(finfo_open(), $file, FILEINFO_MIME_TYPE);
+
+        if ($allowedMimes && !in_array($mimeType, $allowedMimes, true)) {
+            throw new FileValidationException(code: 422, errors: ['Invalid file type.']);
+        }
+
+        $extension = (new MimeTypes())->getExtensions($mimeType)[0];
+
+        return $this->createMedia($mimeType, $extension, $file, strlen($file));
+    }
+
+    /**
+     * Upload from UploadedFile.
+     */
+    public function uploadFromUploadedFile(UploadedFile $file, ?array $allowedMimes = null): Media
+    {
+        $mimeType = $file->getMimeType();
+
+        if ($allowedMimes && !in_array($mimeType, $allowedMimes, true)) {
+            throw new FileValidationException(code: 422, errors: ['Invalid file type.']);
+        }
+
+        return $this->createMedia($mimeType, $file->getExtension(), $file->getContent(), $file->getSize());
+    }
+
+    /**
+     * Upload from URL.
+     */
+    public function uploadFromUrl(string $fileUrl, ?array $allowedMimes = null): Media
+    {
+        $file = $this->httpClient->request('GET', $fileUrl)->getContent();
+        $mimeType = finfo_buffer(finfo_open(), $file, FILEINFO_MIME_TYPE);
+
+        if ($allowedMimes && !in_array($mimeType, $allowedMimes, true)) {
+            throw new FileValidationException(code: 422, errors: ['Invalid file type.']);
+        }
+
+        $extension = new MimeTypes()->getExtensions($mimeType)[0];
+
+        return $this->createMedia($mimeType, $extension, $file, strlen($file));
+    }
+
+    /**
+     * Upload from raw content.
+     */
+    public function uploadFromContent(string $content, string $mimeType, string $extension, ?array $allowedMimes = null): Media
+    {
+        if ($allowedMimes && !in_array($mimeType, $allowedMimes, true)) {
+            throw new FileValidationException(code: 422, errors: ['Invalid file type.']);
+        }
+
+        return $this->createMedia($mimeType, $extension, $content, strlen($content));
+    }
+
+    public function createMedia(string $mimeType, string $extension, string $content, int $size, ?string $reqKey = null): Media
     {
         // Convert JPG
         if ($this->imageConvertJPG) {
@@ -194,21 +265,16 @@ class MediaManager
             }
         }
 
-        // Create Media
-        $media = (new Media())
-            ->setMime($mimeType)
-            ->setStorage($this->storage->getStorageKey())
-            ->setSize($size)
-            ->setPath($this->getPath(Ulid::generate(), $extension));
-
-        if ($persist) {
-            $this->em->persist($media);
-        }
-
         // Write Storage
-        $this->storage->write($content, $media->getPath(), $media->getMime());
+        $path = $this->getPath(Ulid::generate(), strtolower($extension));
+        $this->storage->write($content, $path, strtolower($mimeType));
 
-        return $media;
+        // Create Media
+        return new Media()
+            ->setMime(strtolower($mimeType))
+            ->setSize($size)
+            ->setPath($path)
+            ->setStorage($this->storage->getStorageKey());
     }
 
     protected function getPath(string $fileName, string $extension): string
@@ -219,7 +285,7 @@ class MediaManager
     protected function compress(string $data, string $extension): string
     {
         return match ($extension) {
-            'jpg', 'jpeg', 'png' => (new SimpleImage())
+            'jpg', 'jpeg', 'png' => new SimpleImage()
                 ->fromString($data)
                 ->autoOrient()
                 ->bestFit($this->imageWidth, $this->imageHeight)

@@ -24,7 +24,8 @@
         "doctrine/orm": "^3.5.0",
         "doctrine/doctrine-bundle": "^3.1.0",
         "cesurapp/storage-bundle": "^1.2",
-        "claviska/simpleimage": "^4.2"
+        "claviska/simpleimage": "^4.2",
+        "symfony/validator": "^8.0"
     },
     "require-dev": {
         "php-cs-fixer/shim": "^v3.91.3",

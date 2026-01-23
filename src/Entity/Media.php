@@ -26,17 +26,14 @@ class Media
     #[ORM\Column(type: 'integer')]
     private int $size;
 
-    #[ORM\Column(type: 'integer')]
-    private int $counter = 1;
-
     #[ORM\Column(type: 'json', nullable: true)]
     private array $data = [];
 
     #[ORM\Column(type: 'string', length: 25)]
     private string $storage;
 
-    #[ORM\Column(type: 'string', nullable: true)]
-    private ?string $owner;
+    #[ORM\Column(type: UuidType::NAME, nullable: true)]
+    private ?UuidV7 $owner = null;
 
     #[ORM\Column(type: 'datetime_immutable', nullable: false)]
     private \DateTimeImmutable $createdAt;
@@ -88,32 +85,6 @@ class Media
         return $this;
     }
 
-    public function getCounter(): int
-    {
-        return $this->counter;
-    }
-
-    public function incrCounter(): self
-    {
-        ++$this->counter;
-
-        return $this;
-    }
-
-    public function decrCounter(): self
-    {
-        --$this->counter;
-
-        return $this;
-    }
-
-    public function setCounter(int $counter): self
-    {
-        $this->counter = $counter;
-
-        return $this;
-    }
-
     public function getData(): array
     {
         return $this->data;
@@ -138,12 +109,12 @@ class Media
         return $this;
     }
 
-    public function getOwner(): ?string
+    public function getOwner(): ?UuidV7
     {
         return $this->owner;
     }
 
-    public function setOwner(?string $ownerId): self
+    public function setOwner(?UuidV7 $ownerId): self
     {
         $this->owner = $ownerId;
 
@@ -164,7 +135,7 @@ class Media
 
     public function toString(): string
     {
-        return sprintf('%s.%s', $this->getId()->toBase32(), $this->getExtension());
+        return sprintf('%s.%s', $this->getId()->toString(), $this->getExtension());
     }
 
     public function getExtension(): string
@@ -187,11 +158,11 @@ class Media
 
     public function getResponse(Storage $storage): Response
     {
-        return (new Response($this->getContent($storage), 200, [
+        return new Response($this->getContent($storage), 200, [
             'Content-Disposition' => HeaderUtils::makeDisposition(HeaderUtils::DISPOSITION_INLINE, basename($this->getPath())),
             'Content-Type' => $this->getMime(),
             'Content-Length' => $this->getSize(),
-        ]))
+        ])
             ->setPublic()
             ->setMaxAge(86400);
     }
