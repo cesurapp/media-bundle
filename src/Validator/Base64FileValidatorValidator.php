@@ -14,7 +14,7 @@ class Base64FileValidatorValidator extends ConstraintValidator
             throw new UnexpectedTypeException($constraint, Base64FileValidator::class);
         }
 
-        if (null === $value || '' === $value) {
+        if (null === $value || '' === $value ||  '-1' === $value) {
             return;
         }
 
