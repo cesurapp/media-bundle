@@ -19,6 +19,11 @@ trait AvatarTrait
         return $this->avatar;
     }
 
+    public function getAvatarFirst(): ?Media
+    {
+        return $this->avatar[array_key_first($this->avatar)] ?? null;
+    }
+
     public function setAvatar(array $avatars): self
     {
         $this->avatar = [];
@@ -28,32 +33,17 @@ trait AvatarTrait
         return $this;
     }
 
-    public function addAvatar(Media|array $avatar): self
+    public function addAvatar(Media $avatar): self
     {
-        if (is_array($avatar)) {
-            array_walk_recursive($avatar, fn (Media $avatar) => $this->addAvatar($avatar));
-
-            return $this;
-        }
-
-        if (!in_array($avatar, $this->avatar, true)) {
-            $this->avatar[] = $avatar;
-        }
+        $this->avatar[] = $avatar;
 
         return $this;
     }
 
-    public function removeAvatar(Media $avatar): self
+    public function clearAvatar(): self
     {
-        if ($key = array_search($avatar, $this->avatar, true)) {
-            unset($this->avatar[$key]);
-        }
+        $this->avatar = [];
 
         return $this;
-    }
-
-    public function getAvatarFirst(): ?Media
-    {
-        return $this->avatar[array_key_first($this->avatar)] ?? null;
     }
 }

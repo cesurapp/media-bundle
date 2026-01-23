@@ -34,13 +34,10 @@ class MediaType extends Type
         }
 
         try {
-            $array = [];
-            /** @var Media $item */
-            foreach ($value as $item) {
-                $array[] = $item->getId();
-            }
-
-            return json_encode($array, JSON_THROW_ON_ERROR | JSON_PRESERVE_ZERO_FRACTION);
+            return json_encode(
+                array_map(fn (Media $media) => $media->getId(), $value),
+                JSON_THROW_ON_ERROR | JSON_PRESERVE_ZERO_FRACTION
+            );
         } catch (\JsonException $e) {
             throw InvalidFormat::new($value, 'json', 'array', $e);
         }

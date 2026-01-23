@@ -34,11 +34,6 @@ class MediaBundle extends AbstractBundle
         $services->load('Cesurapp\\MediaBundle\\Command\\', 'Command');
         $services->load('Cesurapp\\MediaBundle\\Repository\\', 'Repository');
 
-        // Model Factories
-        if ('test' === $container->env()) {
-            $services->load('Cesurapp\\MediaBundle\\Factory\\', 'Factory');
-        }
-
         // Media Manager
         $manager = $services->set(MediaManager::class, MediaManager::class);
         if ('test' === $container->env()) {
