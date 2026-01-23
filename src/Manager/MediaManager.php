@@ -255,7 +255,7 @@ class MediaManager
         // Compress
         if ($this->imageCompress) {
             try {
-                $content = $this->compress($content, $extension);
+                $content = $this->compress($content, strtolower($extension), $mimeType);
             } catch (\Throwable) {
                 if ($reqKey) {
                     throw new FileValidationException(code: 422, errors: [$reqKey => ['Invalid file content.']]);
@@ -282,14 +282,14 @@ class MediaManager
         return strtolower(date('Y/m/d').'/'.$fileName.'.'.$extension);
     }
 
-    protected function compress(string $data, string $extension): string
+    protected function compress(string $data, string $extension, ?string $mimeType = null): string
     {
         return match ($extension) {
             'jpg', 'jpeg', 'png' => new SimpleImage()
                 ->fromString($data)
                 ->autoOrient()
                 ->bestFit($this->imageWidth, $this->imageHeight)
-                ->toString(null, $this->imageQuality),
+                ->toString($mimeType, $this->imageQuality),
             default => $data,
         };
     }
