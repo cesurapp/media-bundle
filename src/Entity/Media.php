@@ -214,61 +214,49 @@ class Media
             ->setMaxAge($maxAgeMinute * 60);
     }
 
-    public function toString(bool $signed = false, ?string $secret = null): string
+    public function toString(bool $signed = true, ?string $secret = null, ?int $now = null): string
     {
         $base = sprintf('%s.%s', $this->getId()->toString(), $this->getExtension());
-        if ($this->isPublic() || $this->isAuth() || !$signed) {
+
+        if (!$signed || $this->isPublic() || $this->isAuth()) {
             return $base;
         }
 
-        // Generate signature for signed URL
-        $secret = $secret ?? ($_ENV['APP_SECRET'] ?? 'default_secret');
-        $timestamp = time();
+        $secret ??= ($_ENV['APP_SECRET'] ?? 'default_secret');
+
+        $now ??= time();
+        $timestamp = (int) (floor(($now + 600) / 3600) * 3600);
         $signature = $this->generateSignature($timestamp, $secret);
 
-        return sprintf('%s?t=%d&s=%s', $base, $timestamp, $signature);
+        return $base.'?'.http_build_query(['t' => $timestamp, 's' => $signature]);
     }
 
-    /**
-     * Generate HMAC signature for signed URL.
-     */
+    public function validateSignedUrl(string $url, ?string $secret = null, int $ttl = 3600, ?int $now = null): bool
+    {
+        $query = parse_url($url, PHP_URL_QUERY);
+        if (!$query) {
+            return false;
+        }
+
+        parse_str($query, $params);
+        $t = (int) ($params['t'] ?? 0);
+        $s = $params['s'] ?? '';
+        if (!$t || !$s) {
+            return false;
+        }
+
+        $now ??= time();
+        if ($now > ($t + $ttl) || $now < ($t - 3600)) {
+            return false;
+        }
+
+        $secret ??= ($_ENV['APP_SECRET'] ?? 'default_secret');
+
+        return hash_equals($this->generateSignature($t, $secret), $s);
+    }
+
     private function generateSignature(int $timestamp, string $secret): string
     {
-        return hash_hmac(
-            'sha256',
-            sprintf('%s:%s:%d', $this->getId()->toString(), $this->getExtension(), $timestamp),
-            $secret
-        );
-    }
-
-    /**
-     * Validate signed URL.
-     */
-    public function validateSignedUrl(string $url, ?string $secret = null, int $ttl = 3600): bool
-    {
-        // Parse query string from URL
-        $parts = parse_url($url);
-        if (!isset($parts['query'])) {
-            return false;
-        }
-
-        parse_str($parts['query'], $params);
-
-        if (!isset($params['t']) || !isset($params['s'])) {
-            return false;
-        }
-
-        $timestamp = (int)$params['t'];
-        $providedSignature = $params['s'];
-
-        // Check if signature has expired
-        if (time() - $timestamp > $ttl) {
-            return false;
-        }
-
-        return hash_equals(
-            $this->generateSignature($timestamp, $secret ?? ($_ENV['APP_SECRET'] ?? 'default_secret')),
-            $providedSignature
-        );
+        return hash_hmac('sha256', $this->getId()->toString().':'.$this->getExtension().':'.$timestamp, $secret);
     }
 }

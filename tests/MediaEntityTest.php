@@ -41,12 +41,47 @@ class MediaEntityTest extends TestCase
         $this->assertSame($media, $result);
     }
 
+    public function testToStringPublic(): void
+    {
+        $media = new Media()
+            ->setPath('test/path/file.jpg')
+            ->setPublic();
+
+        $result = $media->toString();
+
+        $this->assertEquals($result, $media->getId()->toRfc4122().'.jpg');
+    }
+
+    public function testToStringAuth(): void
+    {
+        $media = new Media()
+            ->setPath('test/path/file.jpg')
+            ->setAuth();
+
+        $result = $media->toString();
+        $this->assertTrue($media->isAuth());
+        $this->assertEquals($result, $media->getId()->toRfc4122().'.jpg');
+    }
+
+    public function testToStringWithoutPublicAuth(): void
+    {
+        $media = new Media()->setPath('test/path/file.jpg');
+
+        $result = $media->toString();
+        $this->assertFalse($media->isPublic());
+        $this->assertFalse($media->isAuth());
+
+        $this->assertStringContainsString('.jpg', $result);
+        $this->assertStringContainsString('.jpg?t=', $result);
+        $this->assertStringContainsString('&s=', $result);
+    }
+
     public function testToStringWithoutSignature(): void
     {
         $media = new Media();
         $media->setPath('test/path/file.jpg');
 
-        $result = $media->toString();
+        $result = $media->toString(false);
 
         $this->assertStringContainsString('.jpg', $result);
         $this->assertStringNotContainsString('?t=', $result);
@@ -110,8 +145,7 @@ class MediaEntityTest extends TestCase
 
     public function testValidateSignedUrlWithWrongSecret(): void
     {
-        $media = new Media();
-        $media->setPath('test/path/file.jpg');
+        $media = new Media()->setPath('test/path/file.jpg');
 
         $signedUrl = $media->toString(true, 'secret-1');
         $isValid = $media->validateSignedUrl($signedUrl, 'secret-2');
@@ -121,12 +155,45 @@ class MediaEntityTest extends TestCase
 
     public function testToStringBackwardCompatibility(): void
     {
-        $media = new Media();
-        $media->setPath('test/path/file.jpg');
+        $media = new Media()->setPath('test/path/file.jpg');
 
         $result = $media->toString(false);
 
         $this->assertStringContainsString('.jpg', $result);
         $this->assertStringNotContainsString('?', $result);
+    }
+
+    public function testSignedUrlAtLast8thMinuteOfHour(): void
+    {
+        $media = new Media()->setPath('test/path/file.jpg');
+        $secret = 'test-secret';
+
+        $simulatedNow = strtotime('2024-01-01 14:52:00');
+        $expectedTimestamp = strtotime('2024-01-01 15:00:00');
+
+        $signedUrl = $media->toString(true, $secret, $simulatedNow);
+
+        $query = parse_url($signedUrl, PHP_URL_QUERY);
+        parse_str($query, $params);
+
+        $this->assertEquals($expectedTimestamp, (int) $params['t']);
+
+        $isValid = $media->validateSignedUrl($signedUrl, $secret, 3600, $simulatedNow);
+        $this->assertTrue($isValid);
+    }
+
+    public function testSignedUrlTTLHandling(): void
+    {
+        $media = new Media()->setPath('test/path/file.jpg');
+        $secret = 'test-secret';
+
+        $generationTime = strtotime('2024-01-01 14:45:00');
+        $signedUrl = $media->toString(true, $secret, $generationTime);
+
+        $validationTime = strtotime('2024-01-01 15:05:00');
+
+        $this->assertFalse($media->validateSignedUrl($signedUrl, $secret, 3600, $validationTime));
+
+        $this->assertTrue($media->validateSignedUrl($signedUrl, $secret, 7200, $validationTime));
     }
 }
