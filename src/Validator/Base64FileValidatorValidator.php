@@ -2,6 +2,7 @@
 
 namespace Cesurapp\MediaBundle\Validator;
 
+use Symfony\Component\Mime\MimeTypes;
 use Symfony\Component\Validator\Constraint;
 use Symfony\Component\Validator\ConstraintValidator;
 use Symfony\Component\Validator\Exception\UnexpectedTypeException;
@@ -66,6 +67,15 @@ class Base64FileValidatorValidator extends ConstraintValidator
                 ->setParameter('{{ size }}', (string) $fileSize)
                 ->setParameter('{{ max_size }}', (string) ($constraint->maxSize * 1024))
                 ->addViolation();
+        }
+
+        if ($constraint->replaceData) {
+            $this->context->getObject()->{$this->context->getPropertyName()} = [
+                'content' => $decodedContent,
+                'mimeType' => $mimeType,
+                'extension' => new MimeTypes()->getExtensions($mimeType)[0],
+                'size' => $fileSize,
+            ];
         }
     }
 }

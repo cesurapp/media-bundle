@@ -103,43 +103,6 @@ class MediaManager
     }
 
     /**
-     * Find file header information from content.
-     *
-     * @return array{mimeType: string, extension: string, size: int}
-     */
-    private function findHeader(string $content, ?array $allowedMimes = null, ?string $key = null): array
-    {
-        $mimeType = finfo_buffer(finfo_open(), $content, FILEINFO_MIME_TYPE);
-
-        if ($allowedMimes && !in_array($mimeType, $allowedMimes, true)) {
-            if ($key) {
-                throw new FileValidationException(code: 422, errors: [$key => ['Invalid file type.']]);
-            }
-            throw new FileValidationException(code: 422, errors: ['Invalid file type.']);
-        }
-
-        return [
-            'mimeType' => $mimeType,
-            'extension' => new MimeTypes()->getExtensions($mimeType)[0],
-            'size' => strlen($content),
-        ];
-    }
-
-    /**
-     * Find file header information from base64 string.
-     *
-     * @return array{mimeType: string, extension: string, size: int, content: string}
-     */
-    private function findHeaderBase64(string $base64, ?array $allowedMimes = null, ?string $key = null): array
-    {
-        $data = explode(',', $base64);
-        $content = base64_decode($data[1] ?? $data[0]);
-        $header = $this->findHeader($content, $allowedMimes, $key);
-
-        return array_merge($header, ['content' => $content]);
-    }
-
-    /**
      * Upload from Base64 string.
      */
     public function uploadFromBase64(string $base64, ?array $allowedMimes = null, array $options = []): Media
@@ -182,6 +145,20 @@ class MediaManager
         }
 
         return $this->createMedia($content, $mimeType, $extension, strlen($content), $options);
+    }
+
+    /**
+     * Upload from validated data array.
+     *
+     * @param array{content: string, mimeType: string, extension: string, size: int} $data
+     */
+    public function uploadFromData(array $data, ?array $allowedMimes = null, array $options = []): Media
+    {
+        if ($allowedMimes && !in_array($data['mimeType'], $allowedMimes, true)) {
+            throw new FileValidationException(code: 422, errors: ['Invalid file type.']);
+        }
+
+        return $this->createMedia($data['content'], $data['mimeType'], $data['extension'], $data['size'], $options);
     }
 
     public function createMedia(string $content, string $mimeType, string $extension, int $size, array $options = [], ?string $reqKey = null): Media
@@ -240,6 +217,44 @@ class MediaManager
                 ->toString($mimeType, $options['imageQuality']),
             default => $data,
         };
+    }
+
+    /**
+     * Find file header information from content.
+     *
+     * @return array{mimeType: string, extension: string, size: int}
+     */
+    public function findHeader(string $content, ?array $allowedMimes = null, ?string $key = null): array
+    {
+        $mimeType = finfo_buffer(finfo_open(), $content, FILEINFO_MIME_TYPE);
+
+        if ($allowedMimes && !in_array($mimeType, $allowedMimes, true)) {
+            if ($key) {
+                throw new FileValidationException(code: 422, errors: [$key => ['Invalid file type.']]);
+            }
+            throw new FileValidationException(code: 422, errors: ['Invalid file type.']);
+        }
+
+        return [
+            'mimeType' => $mimeType,
+            'extension' => new MimeTypes()->getExtensions($mimeType)[0],
+            'size' => strlen($content),
+        ];
+    }
+
+    /**
+     * Find file header information from base64 string.
+     *
+     * @return array{mimeType: string, extension: string, size: int, content: string}
+     */
+    public function findHeaderBase64(string $base64, ?array $allowedMimes = null, ?string $key = null): array
+    {
+        $data = explode(',', $base64);
+        $content = base64_decode($data[1] ?? $data[0]);
+        $header = $this->findHeader($content, $allowedMimes, $key);
+        $header['content'] = $content;
+
+        return $header;
     }
 
     public function save(Media|array $media, EntityManagerInterface|ObjectManager $entityManager): void
