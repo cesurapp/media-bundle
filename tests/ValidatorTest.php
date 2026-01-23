@@ -28,7 +28,7 @@ class ValidatorTest extends TestCase
 
         $constraint = new Base64FileValidator(
             allowedMimes: ['image/png'],
-            maxSize: 1024 * 1024
+            maxSize: 1024 // 1024 KB = 1 MB
         );
 
         $this->context->expects($this->never())->method('buildViolation');
@@ -43,7 +43,7 @@ class ValidatorTest extends TestCase
 
         $constraint = new Base64FileValidator(
             allowedMimes: ['image/png'],
-            maxSize: 1024 * 1024
+            maxSize: 1024 // 1024 KB = 1 MB
         );
 
         $this->context->expects($this->never())
@@ -60,7 +60,7 @@ class ValidatorTest extends TestCase
 
         $constraint = new Base64FileValidator(
             allowedMimes: ['image/jpeg'], // Only JPEG allowed, but we're sending PNG
-            maxSize: 1024 * 1024
+            maxSize: 1024 // 1024 KB = 1 MB
         );
 
         $violationBuilder = $this->createMock(ConstraintViolationBuilderInterface::class);
@@ -80,13 +80,13 @@ class ValidatorTest extends TestCase
 
     public function testFileSizeExceedsMaxSize(): void
     {
-        // Create a simple 1x1 PNG image
+        // Create a simple 1x1 PNG image (67 bytes)
         $pngData = base64_decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==');
         $base64 = base64_encode($pngData);
 
         $constraint = new Base64FileValidator(
             allowedMimes: ['image/png'],
-            maxSize: 10 // Very small size to trigger violation
+            maxSize: 0 // 0 KB - Very small size to trigger violation
         );
 
         $violationBuilder = $this->createMock(ConstraintViolationBuilderInterface::class);

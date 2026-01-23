@@ -61,10 +61,10 @@ class Base64FileValidatorValidator extends ConstraintValidator
 
         // Validate file size
         $fileSize = strlen($decodedContent);
-        if (null !== $constraint->maxSize && $fileSize > $constraint->maxSize) {
+        if (null !== $constraint->maxSize && $fileSize > ($constraint->maxSize * 1024)) {
             $this->context->buildViolation($constraint->sizeMessage)
                 ->setParameter('{{ size }}', (string) $fileSize)
-                ->setParameter('{{ max_size }}', (string) $constraint->maxSize)
+                ->setParameter('{{ max_size }}', (string) ($constraint->maxSize * 1024))
                 ->addViolation();
         }
     }
