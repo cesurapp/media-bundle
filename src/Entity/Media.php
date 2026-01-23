@@ -4,6 +4,7 @@ namespace Cesurapp\MediaBundle\Entity;
 
 use Cesurapp\StorageBundle\Storage\Storage;
 use Cesurapp\MediaBundle\Repository\MediaRepository;
+use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Bridge\Doctrine\Types\UuidType;
 use Symfony\Component\HttpFoundation\HeaderUtils;
@@ -26,7 +27,7 @@ class Media
     #[ORM\Column(type: 'integer')]
     private int $size;
 
-    #[ORM\Column(type: 'json', nullable: true)]
+    #[ORM\Column(type: Types::JSONB, nullable: true)]
     private array $data = [];
 
     #[ORM\Column(type: 'string', length: 25)]
@@ -85,9 +86,9 @@ class Media
         return $this;
     }
 
-    public function getData(): array
+    public function getData(?string $key = null, mixed $default = null): mixed
     {
-        return $this->data;
+        return $key ? ($this->data[$key] ?? $default) : $this->data;
     }
 
     public function setData(array $data): self
@@ -95,6 +96,54 @@ class Media
         $this->data = $data;
 
         return $this;
+    }
+
+    public function addData(string $key, mixed $value): self
+    {
+        $this->data[$key] = $value;
+
+        return $this;
+    }
+
+    public function removeData(string $key): self
+    {
+        unset($this->data[$key]);
+
+        return $this;
+    }
+
+    public function getFileName(): string
+    {
+        return $this->getData('filename', basename($this->getPath()));
+    }
+
+    public function addFileName(string $name): self
+    {
+        return $this->addData('filename', $name);
+    }
+
+    public function setPublic(bool $public = true): self
+    {
+        $this->addData('public', $public);
+
+        return $this;
+    }
+
+    public function isPublic(bool $default = false): bool
+    {
+        return $this->data['public'] ?? $default;
+    }
+
+    public function setAuth(bool $auth = true): self
+    {
+        $this->addData('auth', $auth);
+
+        return $this;
+    }
+
+    public function isAuth(bool $default = false): bool
+    {
+        return $this->data['auth'] ?? $default;
     }
 
     public function getStorage(): string
@@ -121,6 +170,11 @@ class Media
         return $this;
     }
 
+    public function hasOwner(string $ownerId): bool
+    {
+        return $this->owner->toString() === $ownerId;
+    }
+
     public function getCreatedAt(): \DateTimeImmutable
     {
         return $this->createdAt;
@@ -133,19 +187,11 @@ class Media
         return $this;
     }
 
-    public function toString(): string
-    {
-        return sprintf('%s.%s', $this->getId()->toString(), $this->getExtension());
-    }
-
     public function getExtension(): string
     {
         return pathinfo($this->path, PATHINFO_EXTENSION);
     }
 
-    /**
-     * Read Content.
-     */
     public function getContent(Storage $storage): string
     {
         return $storage->device($this->getStorage())->download($this->getPath());
@@ -156,19 +202,73 @@ class Media
         return $storage->write($this->getPath(), $data, $mime);
     }
 
-    public function getResponse(Storage $storage): Response
+    public function getResponse(Storage $storage, int $maxAgeMinute = 1440): Response
     {
         return new Response($this->getContent($storage), 200, [
-            'Content-Disposition' => HeaderUtils::makeDisposition(HeaderUtils::DISPOSITION_INLINE, basename($this->getPath())),
+            'Content-Disposition' => HeaderUtils::makeDisposition(HeaderUtils::DISPOSITION_INLINE, $this->getFileName()),
             'Content-Type' => $this->getMime(),
             'Content-Length' => $this->getSize(),
         ])
             ->setPublic()
-            ->setMaxAge(86400);
+            ->setSharedMaxAge($maxAgeMinute * 60)
+            ->setMaxAge($maxAgeMinute * 60);
     }
 
-    public function __toString(): string
+    public function toString(bool $signed = false, ?string $secret = null): string
     {
-        return $this->id->toBase32();
+        $base = sprintf('%s.%s', $this->getId()->toString(), $this->getExtension());
+        if ($this->isPublic() || $this->isAuth() || !$signed) {
+            return $base;
+        }
+
+        // Generate signature for signed URL
+        $secret = $secret ?? ($_ENV['APP_SECRET'] ?? 'default_secret');
+        $timestamp = time();
+        $signature = $this->generateSignature($timestamp, $secret);
+
+        return sprintf('%s?t=%d&s=%s', $base, $timestamp, $signature);
+    }
+
+    /**
+     * Generate HMAC signature for signed URL.
+     */
+    private function generateSignature(int $timestamp, string $secret): string
+    {
+        return hash_hmac(
+            'sha256',
+            sprintf('%s:%s:%d', $this->getId()->toString(), $this->getExtension(), $timestamp),
+            $secret
+        );
+    }
+
+    /**
+     * Validate signed URL.
+     */
+    public function validateSignedUrl(string $url, ?string $secret = null, int $ttl = 3600): bool
+    {
+        // Parse query string from URL
+        $parts = parse_url($url);
+        if (!isset($parts['query'])) {
+            return false;
+        }
+
+        parse_str($parts['query'], $params);
+
+        if (!isset($params['t']) || !isset($params['s'])) {
+            return false;
+        }
+
+        $timestamp = (int)$params['t'];
+        $providedSignature = $params['s'];
+
+        // Check if signature has expired
+        if (time() - $timestamp > $ttl) {
+            return false;
+        }
+
+        return hash_equals(
+            $this->generateSignature($timestamp, $secret ?? ($_ENV['APP_SECRET'] ?? 'default_secret')),
+            $providedSignature
+        );
     }
 }
