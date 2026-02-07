@@ -231,6 +231,26 @@ class Media
         return $base.'?'.http_build_query(['t' => $timestamp, 's' => $signature]);
     }
 
+    public function toParams(bool $signed = true, ?string $secret = null, ?int $now = null): array
+    {
+        $base = [
+            'id' => $this->getId()->toString(),
+            'ext' => $this->getExtension(),
+        ];
+
+        if (!$signed || $this->isPublic() || $this->isAuth()) {
+            return $base;
+        }
+
+        $secret ??= ($_ENV['APP_SECRET'] ?? 'default_secret');
+
+        $now ??= time();
+        $timestamp = (int) (floor(($now + 600) / 3600) * 3600);
+        $signature = $this->generateSignature($timestamp, $secret);
+
+        return [...$base, 't' => $timestamp, 's' => $signature];
+    }
+
     public function validateSignedUrl(string $url, ?string $secret = null, int $ttl = 3600, ?int $now = null): bool
     {
         $query = parse_url($url, PHP_URL_QUERY);
