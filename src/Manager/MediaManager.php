@@ -121,7 +121,7 @@ class MediaManager
             throw new FileValidationException(code: 422, errors: ['Invalid file type.']);
         }
 
-        return $this->createMedia($file->getContent(), $file->getMimeType(), $file->getExtension(), $file->getSize(), $options);
+        return $this->createMedia($file->getContent(), $file->getMimeType() ?? $file->getClientMimeType(), $file->guessExtension() ?? $file->getClientOriginalExtension(), $file->getSize(), $options);
     }
 
     /**
