@@ -129,21 +129,9 @@ class Media
         return $this;
     }
 
-    public function isPublic(bool $default = false): bool
+    public function isPublic(bool $default = true): bool
     {
         return $this->data['public'] ?? $default;
-    }
-
-    public function setAuth(bool $auth = true): self
-    {
-        $this->addData('auth', $auth);
-
-        return $this;
-    }
-
-    public function isAuth(bool $default = false): bool
-    {
-        return $this->data['auth'] ?? $default;
     }
 
     public function getStorage(): string
@@ -214,69 +202,52 @@ class Media
             ->setMaxAge($maxAgeMinute * 60);
     }
 
-    public function toString(bool $signed = true, ?string $secret = null, ?int $now = null): string
+    public function getUrl(Storage $storage): string
     {
-        $base = sprintf('%s.%s', $this->getId()->toString(), $this->getExtension());
-
-        if (!$signed || $this->isPublic() || $this->isAuth()) {
-            return $base;
-        }
-
-        $secret ??= ($_ENV['APP_SECRET'] ?? 'default_secret');
-
-        $now ??= time();
-        $timestamp = (int) (floor(($now + 600) / 3600) * 3600);
-        $signature = $this->generateSignature($timestamp, $secret);
-
-        return $base.'?'.http_build_query(['t' => $timestamp, 's' => $signature]);
+        return $storage->device($this->getStorage())->getUrl($this->getPath());
     }
 
-    public function toParams(bool $signed = true, ?string $secret = null, ?int $now = null): array
+    public function getPresignedUrl(Storage $storage, ?\DateTimeImmutable $expires = null): string
     {
-        $base = [
-            'id' => $this->getId()->toString(),
-            'ext' => $this->getExtension(),
-        ];
-
-        if (!$signed || $this->isPublic() || $this->isAuth()) {
-            return $base;
-        }
-
-        $secret ??= ($_ENV['APP_SECRET'] ?? 'default_secret');
-
-        $now ??= time();
-        $timestamp = (int) (floor(($now + 600) / 3600) * 3600);
-        $signature = $this->generateSignature($timestamp, $secret);
-
-        return [...$base, 't' => $timestamp, 's' => $signature];
+        return $storage->device($this->getStorage())->getPresignedUrl($this->getPath(), $expires);
     }
 
-    public function validateSignedUrl(string $url, ?string $secret = null, int $ttl = 3600, ?int $now = null): bool
+    public function toString(Storage $storage, ?\DateTimeImmutable $expires = null, bool $signed = false): string
     {
-        $query = parse_url($url, PHP_URL_QUERY);
-        if (!$query) {
+        $domain = rtrim((string) $storage->getDomain(), '/');
+        if ($domain) {
+            $domain .= '/';
+        }
+
+        // Public URL
+        if ($this->isPublic() && !$signed) {
+            if ('local' !== $this->getStorage()) {
+                return $this->getUrl($storage);
+            }
+
+            return sprintf('%s%s.%s', $domain, $this->getId()->toString(), $this->getExtension());
+        }
+
+        // Signed URL
+        if ('local' !== $this->getStorage()) {
+            return $this->getPresignedUrl($storage, $expires);
+        }
+
+        return sprintf(
+            '%s%s.%s?%s',
+            $domain,
+            $this->getId()->toString(),
+            $this->getExtension(),
+            $this->getPresignedUrl($storage, $expires)
+        );
+    }
+
+    public function validateSignature(Storage $storage, string $signature): bool
+    {
+        if ('local' !== $this->getStorage()) {
             return false;
         }
 
-        parse_str($query, $params);
-        $t = (int) ($params['t'] ?? 0);
-        $s = $params['s'] ?? '';
-        if (!$t || !$s) {
-            return false;
-        }
-
-        $now ??= time();
-        if ($now > ($t + $ttl) || $now < ($t - 3600)) {
-            return false;
-        }
-
-        $secret ??= ($_ENV['APP_SECRET'] ?? 'default_secret');
-
-        return hash_equals($this->generateSignature($t, $secret), $s);
-    }
-
-    private function generateSignature(int $timestamp, string $secret): string
-    {
-        return hash_hmac('sha256', $this->getId()->toString().':'.$this->getExtension().':'.$timestamp, $secret);
+        return $storage->device($this->getStorage())->validateSignedUrl($signature, $this->getPath()); // @phpstan-ignore-line
     }
 }
