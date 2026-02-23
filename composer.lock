@@ -140,16 +140,16 @@
         },
         {
             "name": "cesurapp/storage-bundle",
-            "version": "1.2.5",
+            "version": "1.2.6",
             "source": {
                 "type": "git",
                 "url": "https://github.com/cesurapp/storage-bundle.git",
-                "reference": "014f8896ac4eab3637ed8d94f6ec3b35a79dc282"
+                "reference": "ad97a8a90a95f45ce560fe6c6ba9fde255b006ff"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/cesurapp/storage-bundle/zipball/014f8896ac4eab3637ed8d94f6ec3b35a79dc282",
-                "reference": "014f8896ac4eab3637ed8d94f6ec3b35a79dc282",
+                "url": "https://api.github.com/repos/cesurapp/storage-bundle/zipball/ad97a8a90a95f45ce560fe6c6ba9fde255b006ff",
+                "reference": "ad97a8a90a95f45ce560fe6c6ba9fde255b006ff",
                 "shasum": ""
             },
             "require": {
@@ -190,9 +190,9 @@
             ],
             "support": {
                 "issues": "https://github.com/cesurapp/storage-bundle/issues",
-                "source": "https://github.com/cesurapp/storage-bundle/tree/1.2.5"
+                "source": "https://github.com/cesurapp/storage-bundle/tree/1.2.6"
             },
-            "time": "2026-02-22T17:19:47+00:00"
+            "time": "2026-02-23T05:47:46+00:00"
         },
         {
             "name": "claviska/simpleimage",
