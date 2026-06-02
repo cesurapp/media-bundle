@@ -54,6 +54,6 @@ trait LogoTrait
 
     public function getLogoFirst(): ?Media
     {
-        return $this->logo[array_key_first($this->logo)] ?? null;
+        return $this->logo ? $this->logo[array_key_first($this->logo)] : null;
     }
 }

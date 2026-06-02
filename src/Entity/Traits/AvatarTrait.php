@@ -21,7 +21,7 @@ trait AvatarTrait
 
     public function getAvatarFirst(): ?Media
     {
-        return $this->avatar[array_key_first($this->avatar)] ?? null;
+        return $this->avatar ? $this->avatar[array_key_first($this->avatar)] : null;
     }
 
     public function setAvatar(array $avatars): self
