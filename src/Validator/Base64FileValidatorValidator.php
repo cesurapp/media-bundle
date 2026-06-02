@@ -43,7 +43,6 @@ class Base64FileValidatorValidator extends ConstraintValidator
         }
 
         $mimeType = finfo_buffer($finfo, $decodedContent);
-        finfo_close($finfo);
         if (false === $mimeType) {
             $this->context->buildViolation($constraint->invalidMessage)->addViolation();
 

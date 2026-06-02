@@ -23,7 +23,7 @@ class MediaRemovedListener
 
     public function preRemove(Media $media, PreRemoveEventArgs $event): void
     {
-        $this->pendingRemovals->attach($media, [
+        $this->pendingRemovals->offsetSet($media, [
             'path'    => $media->getPath(),
             'storage' => $media->getStorage(),
         ]);
@@ -31,12 +31,12 @@ class MediaRemovedListener
 
     public function postRemove(Media $media, PostRemoveEventArgs $event): void
     {
-        if (!$this->pendingRemovals->contains($media)) {
+        if (!$this->pendingRemovals->offsetExists($media)) {
             return;
         }
 
         $data  = $this->pendingRemovals[$media];
-        $this->pendingRemovals->detach($media);
+        $this->pendingRemovals->offsetUnset($media);
 
         $path    = $data['path'];
         $store   = $data['storage'];
