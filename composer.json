@@ -1,59 +1,62 @@
 {
-    "name": "cesurapp/media-bundle",
-    "description": "Symfony Media Bundle",
-    "homepage": "https://github.com/cesurapp/media-bundle",
-    "keywords": ["media-bundle", "symfony"],
-    "type": "symfony-bundle",
-    "license": "MIT",
-    "authors": [
-        {
-            "name": "Cesur APAYDIN",
-            "email": "apaydin541@gmail.com"
-        }
-    ],
-    "require": {
-        "php": ">=8.4",
-        "ext-gd": "*",
-        "ext-fileinfo": "*",
-        "symfony/mime": "^8.0",
-        "symfony/uid": "^8.0",
-        "symfony/dependency-injection": "^8.0",
-        "symfony/http-kernel": "^8.0",
-        "symfony/framework-bundle": "^8.0",
-        "symfony/console": "^8.0",
-        "doctrine/orm": "^3.5.0",
-        "doctrine/doctrine-bundle": "^3.1.0",
-        "cesurapp/storage-bundle": "^1.2",
-        "claviska/simpleimage": "^4.2",
-        "symfony/validator": "^8.0"
-    },
-    "require-dev": {
-        "php-cs-fixer/shim": "^v3.91.3",
-        "phpstan/phpstan": "^2.1.33",
-        "zenstruck/foundry": "^2.8.1",
-        "phpunit/phpunit": "^12.5"
-    },
-    "autoload": {
-        "psr-4": {
-            "Cesurapp\\MediaBundle\\": "src/"
-        }
-    },
-    "autoload-dev": {
-        "psr-4": {
-            "Cesurapp\\MediaBundle\\Tests\\": "tests/"
-        }
-    },
-    "scripts": {
-        "test": "@php ./vendor/bin/phpunit --testdox --colors",
-      "test:debug": "@php ./vendor/bin/phpunit --display-all-issues",
-      "test:stop": "@php ./vendor/bin/phpunit --testdox --colors --stop-on-failure",
-        "qa:fix": "vendor/bin/php-cs-fixer fix --ansi --allow-risky=yes",
-        "qa:lint": "vendor/bin/php-cs-fixer fix --dry-run --diff --ansi --allow-risky=yes",
-        "qa:phpstan": "vendor/bin/phpstan analyse --no-progress --ansi --memory-limit 512m",
-        "fix": [
-            "@qa:fix",
-            "@qa:phpstan",
-            "@test"
-        ]
+  "name": "cesurapp/media-bundle",
+  "description": "Symfony Media Bundle",
+  "homepage": "https://github.com/cesurapp/media-bundle",
+  "keywords": [
+    "media-bundle",
+    "symfony"
+  ],
+  "type": "symfony-bundle",
+  "license": "MIT",
+  "authors": [
+    {
+      "name": "Cesur APAYDIN",
+      "email": "apaydin541@gmail.com"
     }
+  ],
+  "require": {
+    "php": ">=8.4",
+    "ext-gd": "*",
+    "ext-fileinfo": "*",
+    "symfony/mime": "^8.0",
+    "symfony/uid": "^8.0",
+    "symfony/dependency-injection": "^8.0",
+    "symfony/http-kernel": "^8.0",
+    "symfony/framework-bundle": "^8.0",
+    "symfony/console": "^8.0",
+    "doctrine/orm": "^3.5.0",
+    "doctrine/doctrine-bundle": "^3.1.0",
+    "cesurapp/storage-bundle": "^1.2",
+    "claviska/simpleimage": "^4.2",
+    "symfony/validator": "^8.0"
+  },
+  "require-dev": {
+    "php-cs-fixer/shim": "^v3.91.3",
+    "phpstan/phpstan": "^2.1.33",
+    "zenstruck/foundry": "^2.8.1",
+    "phpunit/phpunit": "^12.5"
+  },
+  "autoload": {
+    "psr-4": {
+      "Cesurapp\\MediaBundle\\": "src/"
+    }
+  },
+  "autoload-dev": {
+    "psr-4": {
+      "Cesurapp\\MediaBundle\\Tests\\": "tests/"
+    }
+  },
+  "scripts": {
+    "test": "@php ./vendor/bin/phpunit --testdox --colors",
+    "test:debug": "@php ./vendor/bin/phpunit --display-all-issues",
+    "test:stop": "@php ./vendor/bin/phpunit --testdox --colors --stop-on-failure",
+    "qa:fix": "vendor/bin/php-cs-fixer fix --ansi --allow-risky=yes",
+    "qa:lint": "vendor/bin/php-cs-fixer fix --dry-run --diff --ansi --allow-risky=yes",
+    "qa:phpstan": "vendor/bin/phpstan analyse --no-progress --ansi --memory-limit 512m",
+    "fix": [
+      "@qa:fix",
+      "@qa:phpstan",
+      "@test"
+    ]
+  }
 }

@@ -5,6 +5,7 @@ namespace Cesurapp\MediaBundle\Entity;
 use Cesurapp\StorageBundle\Storage\Storage;
 use Cesurapp\MediaBundle\Repository\MediaRepository;
 use Doctrine\DBAL\Types\Types;
+use Doctrine\ORM\EntityNotFoundException;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Bridge\Doctrine\Types\UuidType;
 use Symfony\Component\HttpFoundation\HeaderUtils;
@@ -220,17 +221,21 @@ class Media
         }
 
         // Public URL
-        if ($this->isPublic() && !$signed) {
-            if ('local' !== $this->getStorage()) {
-                return $this->getUrl($storage);
+        try {
+            if ($this->isPublic() && !$signed) {
+                if ('local' !== $this->getStorage()) {
+                    return $this->getUrl($storage);
+                }
+
+                return sprintf('%s%s.%s', $domain, $this->getId()->toString(), $this->getExtension());
             }
 
-            return sprintf('%s%s.%s', $domain, $this->getId()->toString(), $this->getExtension());
-        }
-
-        // Signed URL
-        if ('local' !== $this->getStorage()) {
-            return $this->getPresignedUrl($storage, $expires);
+            // Signed URL
+            if ('local' !== $this->getStorage()) {
+                return $this->getPresignedUrl($storage, $expires);
+            }
+        } catch (EntityNotFoundException) {
+            return '';
         }
 
         return sprintf(
