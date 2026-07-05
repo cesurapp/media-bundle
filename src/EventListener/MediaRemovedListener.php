@@ -26,6 +26,7 @@ class MediaRemovedListener
         $this->pendingRemovals->offsetSet($media, [
             'path'    => $media->getPath(),
             'storage' => $media->getStorage(),
+            'private' => $media->isPrivate(),
         ]);
     }
 
@@ -40,15 +41,19 @@ class MediaRemovedListener
 
         $path    = $data['path'];
         $store   = $data['storage'];
+        $device  = $this->storage->device($store);
+        if ($data['private']) {
+            $device = $device->private();
+        }
 
         if (function_exists('go')) {
-            go(function () use ($path, $store) {
-                if (!$this->storage->device($store)->delete($path)) {
+            go(function () use ($device, $path, $store) {
+                if (!$device->delete($path)) {
                     $this->logger->error('Media File Remove Failed: '.$store.'::'.$path);
                 }
             });
         } else {
-            if (!$this->storage->device($store)->delete($path)) {
+            if (!$device->delete($path)) {
                 $this->logger->error('Media File Remove Failed: '.$store.'::'.$path);
             }
         }

@@ -2,6 +2,7 @@
 
 namespace Cesurapp\MediaBundle\Entity;
 
+use Cesurapp\StorageBundle\Client\DriverInterface;
 use Cesurapp\StorageBundle\Storage\Storage;
 use Cesurapp\MediaBundle\Repository\MediaRepository;
 use Doctrine\DBAL\Types\Types;
@@ -33,6 +34,9 @@ class Media
 
     #[ORM\Column(type: 'string', length: 25)]
     private string $storage;
+
+    #[ORM\Column(type: 'boolean', options: ['default' => false])]
+    private bool $private = false;
 
     #[ORM\Column(type: UuidType::NAME, nullable: true)]
     private ?UuidV7 $owner = null;
@@ -147,6 +151,25 @@ class Media
         return $this;
     }
 
+    public function isPrivate(): bool
+    {
+        return $this->private;
+    }
+
+    public function setPrivate(bool $private = true): self
+    {
+        $this->private = $private;
+
+        return $this;
+    }
+
+    private function resolveDevice(Storage $storage): DriverInterface
+    {
+        $device = $storage->device($this->getStorage());
+
+        return $this->private ? $device->private() : $device;
+    }
+
     public function getOwner(): ?UuidV7
     {
         return $this->owner;
@@ -183,12 +206,12 @@ class Media
 
     public function getContent(Storage $storage): string
     {
-        return $storage->device($this->getStorage())->download($this->getPath());
+        return $this->resolveDevice($storage)->download($this->getPath());
     }
 
     public function setContent(Storage $storage, string $data, string $mime): bool
     {
-        return $storage->write($this->getPath(), $data, $mime);
+        return $this->resolveDevice($storage)->write($data, $this->getPath(), $mime);
     }
 
     public function getResponse(Storage $storage, int $maxAgeMinute = 1440): Response
@@ -205,12 +228,12 @@ class Media
 
     public function getUrl(Storage $storage): string
     {
-        return $storage->device($this->getStorage())->getUrl($this->getPath());
+        return $this->resolveDevice($storage)->getUrl($this->getPath());
     }
 
     public function getPresignedUrl(Storage $storage, ?\DateTimeImmutable $expires = null): string
     {
-        return $storage->device($this->getStorage())->getPresignedUrl($this->getPath(), $expires);
+        return $this->resolveDevice($storage)->getPresignedUrl($this->getPath(), $expires);
     }
 
     public function toString(Storage $storage, ?\DateTimeImmutable $expires = null, bool $signed = false): string
@@ -222,7 +245,7 @@ class Media
 
         // Public URL
         try {
-            if ($this->isPublic() && !$signed) {
+            if ($this->isPublic() && !$signed && !$this->isPrivate()) {
                 if ('local' !== $this->getStorage()) {
                     return $this->getUrl($storage);
                 }
@@ -253,6 +276,6 @@ class Media
             return false;
         }
 
-        return $storage->device($this->getStorage())->validateSignedUrl($signature, $this->getPath()); // @phpstan-ignore-line
+        return $this->resolveDevice($storage)->validateSignedUrl($signature, $this->getPath()); // @phpstan-ignore-line
     }
 }

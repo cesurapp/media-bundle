@@ -15,9 +15,9 @@ use Symfony\Component\Mime\MimeTypes;
 use Symfony\Component\Uid\Ulid;
 use Symfony\Contracts\HttpClient\HttpClientInterface;
 
-class MediaManager
+readonly class MediaManager
 {
-    public function __construct(private readonly Storage $storage, protected readonly LoggerInterface $logger, private readonly HttpClientInterface $httpClient)
+    public function __construct(private Storage $storage, protected LoggerInterface $logger, private HttpClientInterface $httpClient)
     {
     }
 
@@ -170,6 +170,7 @@ class MediaManager
             'imageQuality' => 75,
             'imageHeight' => 1280,
             'imageWidth' => 720,
+            'private' => false,
         ], $options);
 
         // Convert JPG
@@ -199,14 +200,19 @@ class MediaManager
 
         // Write Storage
         $path = strtolower(date('Y/m/d').'/'.Ulid::generate().'.'.strtolower($extension));
-        $this->storage->write($content, $path, strtolower($mimeType));
+        $device = $this->storage->device($this->storage->getStorageKey());
+        if ($options['private']) {
+            $device = $device->private();
+        }
+        $device->write($content, $path, strtolower($mimeType));
 
         // Create Media
         return new Media()
             ->setMime(strtolower($mimeType))
             ->setSize($size)
             ->setPath($path)
-            ->setStorage($this->storage->getStorageKey());
+            ->setStorage($this->storage->getStorageKey())
+            ->setPrivate((bool) $options['private']);
     }
 
     public function compress(string $data, string $extension, string $mimeType, array $options = []): string
