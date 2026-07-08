@@ -199,12 +199,15 @@ readonly class MediaManager
         }
 
         // Write Storage
-        $path = strtolower(date('Y/m/d').'/'.Ulid::generate().'.'.strtolower($extension));
+        $path = strtolower(date('Y/m').'/'.Ulid::generate().'.'.strtolower($extension));
         $device = $this->storage->device($this->storage->getStorageKey());
+        $metadata = [];
         if ($options['private']) {
             $device = $device->private();
+        } else {
+            $metadata['CacheControl'] = 'public, max-age=31536000, immutable';
         }
-        $device->write($content, $path, strtolower($mimeType));
+        $device->write($content, $path, strtolower($mimeType), $metadata);
 
         // Create Media
         return new Media()
