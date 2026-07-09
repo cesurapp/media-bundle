@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "55782920f9168efa087c966d82d093c4",
+    "content-hash": "e38d83a89fc8bae8790b7c3e249ad962",
     "packages": [
         {
             "name": "async-aws/core",
@@ -140,16 +140,16 @@
         },
         {
             "name": "cesurapp/storage-bundle",
-            "version": "1.2.7",
+            "version": "1.2.8",
             "source": {
                 "type": "git",
                 "url": "https://github.com/cesurapp/storage-bundle.git",
-                "reference": "9c08d2d166e88412c3f0e3eb17e49f9a095927a7"
+                "reference": "ae84f4da5ed109d75c79c4af47cba7604293ff7d"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/cesurapp/storage-bundle/zipball/9c08d2d166e88412c3f0e3eb17e49f9a095927a7",
-                "reference": "9c08d2d166e88412c3f0e3eb17e49f9a095927a7",
+                "url": "https://api.github.com/repos/cesurapp/storage-bundle/zipball/ae84f4da5ed109d75c79c4af47cba7604293ff7d",
+                "reference": "ae84f4da5ed109d75c79c4af47cba7604293ff7d",
                 "shasum": ""
             },
             "require": {
@@ -190,9 +190,9 @@
             ],
             "support": {
                 "issues": "https://github.com/cesurapp/storage-bundle/issues",
-                "source": "https://github.com/cesurapp/storage-bundle/tree/1.2.7"
+                "source": "https://github.com/cesurapp/storage-bundle/tree/1.2.8"
             },
-            "time": "2026-07-05T21:09:09+00:00"
+            "time": "2026-07-09T17:32:50+00:00"
         },
         {
             "name": "claviska/simpleimage",
@@ -4765,16 +4765,16 @@
         },
         {
             "name": "php-cs-fixer/shim",
-            "version": "v3.95.11",
+            "version": "v3.95.12",
             "source": {
                 "type": "git",
                 "url": "https://github.com/PHP-CS-Fixer/shim.git",
-                "reference": "87c59806c6ec3da0c554ca154a14c7e970fe5f26"
+                "reference": "b1b00fc14aa446d6ef0c7a4007a7c52bdad51000"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/PHP-CS-Fixer/shim/zipball/87c59806c6ec3da0c554ca154a14c7e970fe5f26",
-                "reference": "87c59806c6ec3da0c554ca154a14c7e970fe5f26",
+                "url": "https://api.github.com/repos/PHP-CS-Fixer/shim/zipball/b1b00fc14aa446d6ef0c7a4007a7c52bdad51000",
+                "reference": "b1b00fc14aa446d6ef0c7a4007a7c52bdad51000",
                 "shasum": ""
             },
             "require": {
@@ -4811,9 +4811,9 @@
             "description": "A tool to automatically fix PHP code style",
             "support": {
                 "issues": "https://github.com/PHP-CS-Fixer/shim/issues",
-                "source": "https://github.com/PHP-CS-Fixer/shim/tree/v3.95.11"
+                "source": "https://github.com/PHP-CS-Fixer/shim/tree/v3.95.12"
             },
-            "time": "2026-06-25T14:17:29+00:00"
+            "time": "2026-07-07T13:30:09+00:00"
         },
         {
             "name": "phpstan/phpstan",
@@ -5226,24 +5226,24 @@
         },
         {
             "name": "phpunit/phpunit",
-            "version": "12.5.30",
+            "version": "12.5.31",
             "source": {
                 "type": "git",
                 "url": "https://github.com/sebastianbergmann/phpunit.git",
-                "reference": "900400a5b616d6fb306f9549f6da33ba615d3fbb"
+                "reference": "0608d157a284f15cc73b99a3327eff06b66a176d"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/sebastianbergmann/phpunit/zipball/900400a5b616d6fb306f9549f6da33ba615d3fbb",
-                "reference": "900400a5b616d6fb306f9549f6da33ba615d3fbb",
+                "url": "https://api.github.com/repos/sebastianbergmann/phpunit/zipball/0608d157a284f15cc73b99a3327eff06b66a176d",
+                "reference": "0608d157a284f15cc73b99a3327eff06b66a176d",
                 "shasum": ""
             },
             "require": {
                 "ext-dom": "*",
+                "ext-filter": "*",
                 "ext-json": "*",
                 "ext-libxml": "*",
                 "ext-mbstring": "*",
-                "ext-xml": "*",
                 "ext-xmlwriter": "*",
                 "myclabs/deep-copy": "^1.13.4",
                 "phar-io/manifest": "^2.0.4",
@@ -5304,7 +5304,7 @@
             "support": {
                 "issues": "https://github.com/sebastianbergmann/phpunit/issues",
                 "security": "https://github.com/sebastianbergmann/phpunit/security/policy",
-                "source": "https://github.com/sebastianbergmann/phpunit/tree/12.5.30"
+                "source": "https://github.com/sebastianbergmann/phpunit/tree/12.5.31"
             },
             "funding": [
                 {
@@ -5312,7 +5312,7 @@
                     "type": "other"
                 }
             ],
-            "time": "2026-06-15T13:12:30+00:00"
+            "time": "2026-07-06T14:54:16+00:00"
         },
         {
             "name": "sebastian/cli-parser",

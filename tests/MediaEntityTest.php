@@ -10,6 +10,37 @@ use PHPUnit\Framework\TestCase;
 
 class MediaEntityTest extends TestCase
 {
+    public function testMediaIsBornReady(): void
+    {
+        $media = new Media();
+
+        $this->assertSame(Media::STATUS_READY, $media->getStatus());
+        $this->assertTrue($media->isReady());
+    }
+
+    public function testStatusTransitions(): void
+    {
+        $media = new Media();
+
+        $this->assertFalse($media->markPending()->isReady());
+        $this->assertSame(Media::STATUS_PENDING, $media->getStatus());
+
+        $this->assertTrue($media->markReady()->isReady());
+        $this->assertSame(Media::STATUS_READY, $media->getStatus());
+    }
+
+    public function testPresignedPutUrlIsUnsupportedOnLocalStorage(): void
+    {
+        $media = new Media()
+            ->setStorage('local')
+            ->setPath('test/path/file.jpg');
+
+        $storage = new Storage('local', ['local' => new Local(__DIR__.'/../var/cache')]);
+
+        $this->expectException(\LogicException::class);
+        $media->getPresignedPutUrl($storage);
+    }
+
     public function testOwnerIsUuidV7(): void
     {
         $media = new Media();

@@ -26,7 +26,7 @@
     "symfony/console": "^8.0",
     "doctrine/orm": "^3.5.0",
     "doctrine/doctrine-bundle": "^3.1.0",
-    "cesurapp/storage-bundle": "^1.2",
+    "cesurapp/storage-bundle": "^1.2.8",
     "claviska/simpleimage": "^4.2",
     "symfony/validator": "^8.0"
   },

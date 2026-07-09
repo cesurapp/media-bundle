@@ -14,8 +14,22 @@ use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Uid\UuidV7;
 
 #[ORM\Entity(repositoryClass: MediaRepository::class)]
+#[ORM\Index(columns: ['owner'])]
+#[ORM\Index(columns: ['status', 'created_at'])]
 class Media
 {
+    /**
+     * The row exists but its object has not landed in storage yet — a presigned upload was handed
+     * out and never confirmed. Such media are not servable and are swept once they go stale.
+     */
+    public const string STATUS_PENDING = 'pending';
+
+    /**
+     * The object is in storage. Media written through MediaManager are born ready, which is also
+     * the column default, so writers that predate this column keep producing valid rows.
+     */
+    public const string STATUS_READY = 'ready';
+
     #[ORM\Id]
     #[ORM\Column(type: UuidType::NAME, unique: true)]
     private UuidV7 $id;
@@ -37,6 +51,9 @@ class Media
 
     #[ORM\Column(type: 'boolean', options: ['default' => false])]
     private bool $private = false;
+
+    #[ORM\Column(type: 'string', length: 20, options: ['default' => self::STATUS_READY])]
+    private string $status = self::STATUS_READY;
 
     #[ORM\Column(type: UuidType::NAME, nullable: true)]
     private ?UuidV7 $owner = null;
@@ -163,6 +180,30 @@ class Media
         return $this;
     }
 
+    public function getStatus(): string
+    {
+        return $this->status;
+    }
+
+    public function isReady(): bool
+    {
+        return self::STATUS_READY === $this->status;
+    }
+
+    public function markReady(): self
+    {
+        $this->status = self::STATUS_READY;
+
+        return $this;
+    }
+
+    public function markPending(): self
+    {
+        $this->status = self::STATUS_PENDING;
+
+        return $this;
+    }
+
     private function resolveDevice(Storage $storage): DriverInterface
     {
         $device = $storage->device($this->getStorage());
@@ -234,6 +275,15 @@ class Media
     public function getPresignedUrl(Storage $storage, ?\DateTimeImmutable $expires = null): string
     {
         return $this->resolveDevice($storage)->getPresignedUrl($this->getPath(), $expires);
+    }
+
+    /**
+     * URL a third party can PUT this media's bytes to, without holding storage credentials.
+     * Pair it with a pending row: mark the media ready once the upload is confirmed.
+     */
+    public function getPresignedPutUrl(Storage $storage, ?\DateTimeImmutable $expires = null): string
+    {
+        return $this->resolveDevice($storage)->getPresignedPutUrl($this->getPath(), $expires);
     }
 
     public function toString(Storage $storage, ?\DateTimeImmutable $expires = null, bool $signed = false): string
