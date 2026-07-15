@@ -198,9 +198,15 @@ readonly class MediaManager
             }
         }
 
-        // Write Storage
+        // Write Storage. An optional 'storage' option routes the object to a specific
+        // device (e.g. an org's region storage); an unknown device falls back to the
+        // default so callers can pass a region name that isn't configured everywhere.
+        $deviceKey = $this->storage->getStorageKey();
+        if (!empty($options['storage']) && $this->storage->hasDevice($options['storage'])) {
+            $deviceKey = $options['storage'];
+        }
         $path = strtolower(date('Y/m').'/'.Ulid::generate().'.'.strtolower($extension));
-        $device = $this->storage->device($this->storage->getStorageKey());
+        $device = $this->storage->device($deviceKey);
         $metadata = [];
         if ($options['private']) {
             $device = $device->private();
@@ -214,7 +220,7 @@ readonly class MediaManager
             ->setMime(strtolower($mimeType))
             ->setSize($size)
             ->setPath($path)
-            ->setStorage($this->storage->getStorageKey())
+            ->setStorage($deviceKey)
             ->setPrivate((bool) $options['private']);
     }
 
