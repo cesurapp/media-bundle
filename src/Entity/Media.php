@@ -40,7 +40,7 @@ class Media
     #[ORM\Column(type: 'string', length: 40)]
     private string $mime;
 
-    #[ORM\Column(type: 'integer')]
+    #[ORM\Column(type: 'bigint')]
     private int $size;
 
     #[ORM\Column(type: Types::JSONB, nullable: true)]
