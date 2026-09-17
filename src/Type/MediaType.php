@@ -11,7 +11,7 @@ use Cesurapp\MediaBundle\Entity\Media;
 use Symfony\Component\Uid\UuidV7;
 
 /**
- * Doctrine Media Type Stored in JSON.
+ * Doctrine Media Type Stored in JSONB.
  */
 class MediaType extends Type
 {
@@ -19,7 +19,7 @@ class MediaType extends Type
 
     public function getSQLDeclaration(array $column, AbstractPlatform $platform): string
     {
-        return $platform->getJsonTypeDeclarationSQL($column);
+        return $platform->getJsonbTypeDeclarationSQL($column);
     }
 
     public function getName(): string

@@ -45,7 +45,7 @@ trait MediaTrait
 
     public function removeMedia(Media $media): self
     {
-        if ($key = array_search($media, $this->media, true)) {
+        if (false !== ($key = array_search($media, $this->media, true))) {
             unset($this->media[$key]);
         }
 

@@ -45,7 +45,7 @@ trait LogoTrait
 
     public function removeLogo(Media $logo): self
     {
-        if ($key = array_search($logo, $this->logo, true)) {
+        if (false !== ($key = array_search($logo, $this->logo, true))) {
             unset($this->logo[$key]);
         }
 
