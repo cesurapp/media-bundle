@@ -25,10 +25,22 @@ class Base64FileValidatorValidator extends ConstraintValidator
             return;
         }
 
+        // Reject clearly oversized payloads before decoding them into memory. Base64 is ~4/3 of the
+        // bytes; the slack covers padding and line breaks, the exact check follows the decode.
+        $data = explode(',', $value, 2);
+        $encoded = $data[1] ?? $data[0];
+        if (null !== $constraint->maxSize && strlen($encoded) * 3 / 4 > $constraint->maxSize * 1024 * 1.1 + 16) {
+            $this->context->buildViolation($constraint->sizeMessage)
+                ->setParameter('{{ size }}', (string) (int) (strlen($encoded) * 3 / 4))
+                ->setParameter('{{ max_size }}', (string) ($constraint->maxSize * 1024))
+                ->addViolation();
+
+            return;
+        }
+
         // Decode base64
-        $data = explode(',', $value);
-        $decodedContent = base64_decode($data[1] ?? $data[0], true);
-        if (false === $decodedContent) {
+        $decodedContent = base64_decode($encoded, true);
+        if (false === $decodedContent || '' === $decodedContent) {
             $this->context->buildViolation($constraint->invalidMessage)->addViolation();
 
             return;
@@ -66,13 +78,15 @@ class Base64FileValidatorValidator extends ConstraintValidator
                 ->setParameter('{{ size }}', (string) $fileSize)
                 ->setParameter('{{ max_size }}', (string) ($constraint->maxSize * 1024))
                 ->addViolation();
+
+            return;
         }
 
         if ($constraint->replaceData) {
             $this->context->getObject()->{$this->context->getPropertyName()} = [
                 'content' => $decodedContent,
                 'mimeType' => $mimeType,
-                'extension' => new MimeTypes()->getExtensions($mimeType)[0],
+                'extension' => MimeTypes::getDefault()->getExtensions($mimeType)[0] ?? 'bin',
                 'size' => $fileSize,
             ];
         }

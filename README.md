@@ -3,21 +3,18 @@
 [![App Tester](https://github.com/cesurapp/media-bundle/actions/workflows/testing.yaml/badge.svg)](https://github.com/cesurapp/media-bundle/actions/workflows/testing.yaml)
 [![Software License](https://img.shields.io/badge/license-MIT-brightgreen.svg?logo=Unlicense)](LICENSE.md)
 
-Media management bundle for Symfony with automatic storage integration and reference counting.
+Media management bundle for Symfony, built on top of `cesurapp/storage-bundle`.
 
 **Features:**
-- Automatic file tracking with reference counting
-- Auto-cleanup when media is deleted or unused
-- Image compression, resizing, and format conversion
-- Multiple upload methods (HTTP, Base64, URL)
-- Support for multiple media columns per entity
-- Built on top of `cesurapp/storage-bundle`
+- Uploads from HTTP files, base64, remote URLs and raw content
+- Image compression, resizing and PNG → JPG conversion
+- Media columns stored as JSONB id lists on your entities
+- Storage object deleted when the `Media` row is deleted (after commit)
+- Safe defaults: active content (html, svg, php…) refused, SSRF-protected downloads, image size limits
 
 ## Installation
 
-**Requirements:**
-- PHP 8.4+
-- Symfony 8.0+
+**Requirements:** PHP 8.4+, Symfony 8.1+, `ext-gd`, `ext-fileinfo`
 
 ```bash
 composer require cesurapp/media-bundle
@@ -25,119 +22,112 @@ composer require cesurapp/media-bundle
 
 ## Quick Start
 
-### 1. Add Media Column to Entity
+### 1. Add a Media Column to an Entity
 
 ```php
-use Cesurapp\MediaBundle\Entity\{MediaInterface,Traits\MediaTrait};
+use Cesurapp\MediaBundle\Entity\MediaSuperClass;
+use Cesurapp\MediaBundle\Entity\Traits\MediaTrait;
+use Doctrine\ORM\Mapping as ORM;
 
-class User implements MediaInterface
+#[ORM\Entity]
+#[ORM\HasLifecycleCallbacks]
+class Post extends MediaSuperClass
 {
     use MediaTrait;
 
-    // For single column, getMediaColumns() is optional
-    // For multiple columns, override:
+    // Columns whose media are removed together with the entity
     public function getMediaColumns(): array
     {
-        return ['media', 'avatar'];
+        return ['media'];
     }
 }
 ```
 
-**Note:** Copy and rename `MediaTrait` for each additional media column (e.g., `LogoTrait`, `AvatarTrait`).
+`MediaTrait`, `AvatarTrait` and `LogoTrait` ship with the bundle. Copy one and rename it for another column.
 
-### 2. Upload Media
+### 2. Upload
 
 ```php
 use Cesurapp\MediaBundle\Manager\MediaManager;
-use Symfony\Component\HttpFoundation\Request;
 
-class UploadController
-{
-    public function upload(Request $request, MediaManager $manager): void
-    {
-        // Configure image processing
-        $medias = $manager
-            ->setImageCompress(true)        // Enable compression
-            ->setImageConvertJPG(true)      // Convert PNG/JPEG to JPG
-            ->setImageQuality(75)           // JPEG quality (0-100)
-            ->setImageSize(1280, 720)       // Max dimensions (aspect ratio preserved)
-            ->uploadFile($request);         // Upload HTTP files
+// HTTP multipart files, optional key filter and allowed types per key
+$medias = $manager->uploadHttpFile($request, ['photos'], [], ['photos' => ['image/jpeg', 'image/png']]);
 
-        // Attach to entity
-        $user->addMedias($medias);
-    }
-}
+// Base64 fields
+$medias = $manager->uploadHttpBase64($request, ['image'], ['image' => ['image/png', 'image/jpeg']]);
+
+// Remote links (private networks refused, 20 MB default limit)
+$medias = $manager->uploadHttpLink($request, ['imageUrl'], ['imageUrl' => ['image/png']]);
+
+// Single sources
+$media = $manager->uploadFromUploadedFile($file, ['image/png']);
+$media = $manager->uploadFromBase64($base64, ['image/png']);
+$media = $manager->uploadFromUrl($url, ['image/png']);
+$media = $manager->uploadFromContent($content, 'image/png', 'png');
+$media = $manager->uploadFromData($dto->validated('avatar')); // from Base64FileValidator
+
+$manager->save($medias, $em); // persist + flush
+$post->addMedia($medias);
 ```
 
-### 3. Upload Methods
+### 3. Options
+
+Every upload method takes an `$options` array:
+
+| Option | Default | |
+|---|---|---|
+| `imageCompress` | `true` | Re-encode jpg/png |
+| `imageConvertJPG` | `true` | Convert png/jpeg to jpg |
+| `imageQuality` | `75` | Encoder quality |
+| `imageWidth` / `imageHeight` | `720` / `1280` | Best-fit box |
+| `imageMaxPixels` | `40000000` | Images above this pixel count are refused before decoding |
+| `private` | `false` | Write to the device's private bucket |
+| `storage` | default device | Device key; unknown keys fall back to the default |
+| `maxSize` | `null` (links: 20 MB) | Max bytes |
+| `maxFiles` | `20` | Max files per request key (HTTP helpers) |
+| `allowUnsafe` | `false` | Accept html, svg, xml, js, php, executables |
+| `allowPrivateNetwork` | `false` | Let link downloads reach private/loopback addresses |
+| `downloadTimeout` / `downloadMaxDuration` | `10` / `30` | Seconds |
+
+### 4. Access
 
 ```php
-// HTTP file upload
-$medias = $manager->uploadFile($request, ['avatar', 'photos']);
+$media = $post->getMedia();          // array<string, Media>
+$first = $user->getAvatarFirst();
 
-// Base64 upload with MIME validation
-$medias = $manager->uploadBase64(
-    $request,
-    ['image'],
-    ['image' => ['image/png', 'image/jpeg']]
-);
+$media->toString($storage);          // public or signed URL
+$media->getResponse($storage);       // HTTP response (nosniff, private files never shared-cached)
+$media->getContent($storage);
 
-// Remote URL download
-$medias = $manager->uploadLink(
-    $request,
-    ['imageUrl'],
-    ['imageUrl' => ['image/png']]
-);
-
-// Direct content creation
-$media = $manager->createMedia('image/png', 'png', $content, strlen($content));
+// Media columns hold lazy references: load a whole list in one query
+$mediaRepository->preload(array_map(fn (User $u) => $u->getAvatar(), $users));
 ```
 
-### 4. Access Media
+### 5. Delete
 
 ```php
-// Get all media
-$allMedia = $user->getMedia();
-
-// Get first media
-$firstMedia = $user->getMedia()[0] ?? null;
-
-// Using helper method (available in LogoTrait, etc.)
-$logo = $user->getLogoFirst();
-
-// Serve as HTTP response
-return $media->getResponse($storage);
-
-// Get file content
-$content = $media->getContent($storage);
-
-// Get file path
-$path = $media->getPath(); // e.g., "2025/01/20/01hmz3k4.jpg"
-```
-
-### 5. Delete Media
-
-```php
-// Manual deletion
 $em->remove($media);
-$em->flush(); // File automatically deleted from storage
+$em->flush(); // object deleted from storage once the transaction commits
 
-// Remove from entity (auto-cleanup via counter)
-$user->removeMedia($media);
-$em->flush(); // Media deleted if no other references
-
-// Entity deletion (cascading cleanup)
-$em->remove($user);
-$em->flush(); // All associated media auto-deleted when counter reaches 0
+$em->remove($post);
+$em->flush(); // MediaSuperClass removes the post's media in the same flush
 ```
+
+There is no reference counting. `removeMedia()`, `setMedia()` and `clearMedia()` only change the column;
+remove the replaced `Media` yourself or it stays in storage.
 
 ## Commands
 
 ```bash
-# View media storage statistics
-bin/console media:status
+bin/console media:status   # file count and total size
 ```
 
-## Documentation
+## Upgrading
 
-For detailed usage, see [GUIDELINES.md](GUIDELINES.md)
+- `media.mime` is now `VARCHAR(255)` (was 40, too short for Office types): generate a migration.
+- `size` is the stored byte count (after compression). Rows written before keep the original upload size.
+- `uploadHttpFile()` throws `FileValidationException` for invalid files instead of logging and returning the raw `UploadedFile`.
+- `uploadHttpLink()` leaves failed links out of the result instead of returning the URL string.
+- `MediaSuperClass::postRemoveMedia()` is now `preRemoveMedia()` and no longer flushes.
+
+See [GUIDELINES.md](GUIDELINES.md) for details.

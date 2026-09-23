@@ -30,6 +30,15 @@ class Media
      */
     public const string STATUS_READY = 'ready';
 
+    /**
+     * Types a browser may render in place without running scripts in the serving origin. Anything
+     * else is served as an attachment so a stored html/svg/xml file cannot execute as the app.
+     */
+    public const array INLINE_MIMES = [
+        'image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/avif', 'image/bmp', 'image/x-icon',
+        'image/vnd.microsoft.icon', 'application/pdf', 'text/plain',
+    ];
+
     #[ORM\Id]
     #[ORM\Column(type: UuidType::NAME, unique: true)]
     private UuidV7 $id;
@@ -37,7 +46,7 @@ class Media
     #[ORM\Column(type: 'string')]
     private string $path;
 
-    #[ORM\Column(type: 'string', length: 40)]
+    #[ORM\Column(type: 'string', length: 255)]
     private string $mime;
 
     #[ORM\Column(type: 'bigint')]
@@ -225,7 +234,7 @@ class Media
 
     public function hasOwner(string $ownerId): bool
     {
-        return $this->owner->toString() === $ownerId;
+        return null !== $this->owner && $this->owner->toString() === $ownerId;
     }
 
     public function getCreatedAt(): \DateTimeImmutable
@@ -257,14 +266,39 @@ class Media
 
     public function getResponse(Storage $storage, int $maxAgeMinute = 1440): Response
     {
-        return new Response($this->getContent($storage), 200, [
-            'Content-Disposition' => HeaderUtils::makeDisposition(HeaderUtils::DISPOSITION_INLINE, $this->getFileName()),
+        $content = $this->getContent($storage);
+        $inline = in_array($this->getMime(), self::INLINE_MIMES, true)
+            || str_starts_with($this->getMime(), 'audio/')
+            || str_starts_with($this->getMime(), 'video/');
+        $fileName = str_replace(['/', '\\'], '_', $this->getFileName());
+
+        $response = new Response($content, 200, [
+            'Content-Disposition' => HeaderUtils::makeDisposition(
+                $inline ? HeaderUtils::DISPOSITION_INLINE : HeaderUtils::DISPOSITION_ATTACHMENT,
+                $fileName,
+                $this->asciiFileName($fileName)
+            ),
             'Content-Type' => $this->getMime(),
-            'Content-Length' => $this->getSize(),
-        ])
+            'Content-Length' => (string) strlen($content),
+            'X-Content-Type-Options' => 'nosniff',
+        ]);
+
+        // A private file must never land in a shared cache (CDN, reverse proxy).
+        if ($this->isPrivate() || !$this->isPublic()) {
+            return $response->setPrivate()->setMaxAge($maxAgeMinute * 60);
+        }
+
+        return $response
             ->setPublic()
             ->setSharedMaxAge($maxAgeMinute * 60)
             ->setMaxAge($maxAgeMinute * 60);
+    }
+
+    private function asciiFileName(string $fileName): string
+    {
+        $ascii = preg_replace('/[^\x20-\x7e]|%/', '_', $fileName);
+
+        return '' === $ascii || null === $ascii ? 'file' : $ascii;
     }
 
     public function getUrl(Storage $storage): string
@@ -293,8 +327,8 @@ class Media
             $domain .= '/';
         }
 
-        // Public URL
         try {
+            // Public URL
             if ($this->isPublic() && !$signed && !$this->isPrivate()) {
                 if ('local' !== $this->getStorage()) {
                     return $this->getUrl($storage);
@@ -307,17 +341,17 @@ class Media
             if ('local' !== $this->getStorage()) {
                 return $this->getPresignedUrl($storage, $expires);
             }
+
+            return sprintf(
+                '%s%s.%s?%s',
+                $domain,
+                $this->getId()->toString(),
+                $this->getExtension(),
+                $this->getPresignedUrl($storage, $expires)
+            );
         } catch (EntityNotFoundException) {
             return '';
         }
-
-        return sprintf(
-            '%s%s.%s?%s',
-            $domain,
-            $this->getId()->toString(),
-            $this->getExtension(),
-            $this->getPresignedUrl($storage, $expires)
-        );
     }
 
     public function validateSignature(Storage $storage, string $signature): bool

@@ -21,7 +21,7 @@ class MediaStatusCommand extends Command
     {
         $totalFile = $this->repository->createQueryBuilder('q')
             ->select('COUNT(q.id)')->getQuery()->getSingleScalarResult();
-        $totalSize = $this->repository->createQueryBuilder('q')
+        $totalSize = (int) $this->repository->createQueryBuilder('q')
             ->select('SUM(q.size)')->getQuery()->getSingleScalarResult();
 
         (new Table($output))
@@ -29,7 +29,7 @@ class MediaStatusCommand extends Command
             ->setRows([
                 [
                     $totalFile,
-                    sprintf('%s MB / %s GB', number_format(round($totalSize / 1000)), number_format(round($totalSize / 1000 / 1000))),
+                    sprintf('%s MB / %s GB', number_format($totalSize / 1024 / 1024, 2), number_format($totalSize / 1024 / 1024 / 1024, 2)),
                 ],
             ])
             ->setHorizontal()

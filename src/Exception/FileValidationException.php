@@ -8,8 +8,9 @@ class FileValidationException extends \Exception
         string $message = 'Validation failed',
         int $code = 422,
         protected ?array $errors = null,
+        ?\Throwable $previous = null,
     ) {
-        parent::__construct($message, $code);
+        parent::__construct($message, $code, $previous);
     }
 
     public function getErrors(): ?array

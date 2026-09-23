@@ -1,227 +1,161 @@
 ## 1. Media Types
 
-MEDIA-BUNDLE determines media type from MIME type automatically during upload.
+The type of an upload is detected on the server, never taken from the client.
 
-**Supported detection:**
-- Images: `image/jpeg`, `image/png`, `image/gif`, etc.
-- Videos: `video/mp4`, `video/mpeg`, etc.
-- Audio: `audio/mpeg`, `audio/wav`, etc.
-- Documents: `application/pdf`, `text/*`, etc.
+- MIME type: `finfo` on the content (`UploadedFile::getMimeType()` for multipart files)
+- Extension: derived from the detected type with Symfony MimeTypes, `bin` when unknown
+- The client's file name and extension are never used in the storage key
 
-**Type determination:**
-- MIME type detected via `finfo_buffer()` during upload
-- Extension extracted from MIME type using Symfony MimeTypes
-- No manual type selection required
+**Refused by default** (`MediaManager::UNSAFE_MIMES`, `MediaManager::UNSAFE_EXTENSIONS`): html, xhtml, svg,
+xml, javascript, php, shell scripts and executables. A browser renders or runs these, so a stored copy is
+stored XSS on a public bucket and code execution on a web-served disk. Pass `'allowUnsafe' => true` only
+when the files are never served from a domain that shares cookies with the app.
 
-**Example:**
-```php
-$media = $mediaManager->createMedia(
-    'image/png',
-    'png',
-    $content,
-    strlen($content)
-);
-// Media type is implicitly "image" based on MIME
-```
+Always pass an `$allowedMimes` list when the caller knows what it expects.
 
 ## 2. Media Creation & Upload
 
-**Entry points:**
-- `uploadFile()` - HTTP file uploads
-- `uploadBase64()` - Base64-encoded content
-- `uploadLink()` - Remote URL download
-- `createMedia()` - Direct content creation
+| Method | Input |
+|---|---|
+| `uploadHttpFile(Request, ?array $keys, array $options, ?array $allowedMimes)` | multipart files; `$allowedMimes` is keyed by request key |
+| `uploadHttpBase64(Request, array $keys, ?array $allowedMimes, array $options)` | base64 fields, keyed allow list |
+| `uploadHttpLink(Request, array $keys, ?array $allowedMimes, array $options)` | URL fields, downloaded concurrently |
+| `uploadFromUploadedFile(UploadedFile, ?array $allowedMimes, array $options)` | one file |
+| `uploadFromBase64(string, ?array $allowedMimes, array $options)` | one base64 string or data URI |
+| `uploadFromUrl(string, ?array $allowedMimes, array $options)` | one URL |
+| `uploadFromContent(string $content, string $mime, string $extension, ?array $allowedMimes, array $options)` | raw bytes |
+| `uploadFromData(array, ?array $allowedMimes, array $options)` | array produced by `Base64FileValidator` |
+| `createMedia(string $content, string $mime, string $extension, int $size, array $options)` | low level, used by all of the above |
 
-**Accepted inputs:**
-- `uploadFile()`: `Request` object with files, optional key filter
-- `uploadBase64()`: `Request` with base64 strings, required keys, optional MIME validation
-- `uploadLink()`: `Request` with URLs, required keys, optional MIME validation
-- `createMedia()`: Raw content string, MIME type, extension, size
+**Errors:** validation problems throw `FileValidationException` (code 422); `getErrors()` returns
+`[key => [message]]` for the HTTP helpers and `[message]` otherwise. `uploadHttpLink()` is the exception:
+a link that fails to download or has a disallowed type is logged and left out of the result.
 
-**Required parameters:**
-- All methods require valid content
-- Base64/Link methods require key array and optional MIME whitelist
-- `createMedia()` requires: `$mimeType`, `$extension`, `$content`, `$size`
+**Limits:** `maxFiles` (20 per key), `maxSize` (bytes; link downloads default to 20 MB),
+`imageMaxPixels` (40 MP). Link downloads refuse private, loopback and link-local addresses, redirects
+included, unless `allowPrivateNetwork` is set; they time out after `downloadTimeout` seconds idle and
+`downloadMaxDuration` seconds total.
 
-**Example:**
-```php
-// HTTP upload
-$medias = $mediaManager->uploadFile($request, ['avatar', 'photos']);
-
-// Base64 upload with MIME validation
-$medias = $mediaManager->uploadBase64(
-    $request,
-    ['image'],
-    ['image' => ['image/png', 'image/jpeg']]
-);
-
-// Direct creation
-$media = $mediaManager->createMedia('image/png', 'png', $content, strlen($content), true);
-```
+**Storage write happens before the database row exists.** If the request fails after the upload, the
+object is orphaned. Persist and flush as soon as the upload succeeds.
 
 ## 3. Media Collections
 
-**Purpose:**
-- Associate multiple media files with entity properties
-- Track media usage via reference counting
-- Enable automatic cleanup when entities are deleted
-
-**Naming conventions:**
-- Column name matches trait property name (e.g., `media`, `logo`, `logoCover`)
-- Trait defines `getMediaColumns()` returning column names
-- Use camelCase for column names
-
-**Single vs multiple media:**
-- All columns store arrays of `Media` entities
-- Single media: use `getLogoFirst()` helper or access `$logo[0]`
-- Multiple media: iterate over array
-- Empty collections: `null` or `[]`
-
-**Example:**
+A media column is a JSONB list of `Media` ids (`#[ORM\Column(type: 'media')]`). Reading it returns an
+array of lazy references keyed by id.
 
 ```php
-use Cesurapp\MediaBundle\Entity\{MediaInterface,Traits\MediaTrait};
+use Cesurapp\MediaBundle\Entity\MediaSuperClass;
+use Cesurapp\MediaBundle\Entity\Traits\{MediaTrait, AvatarTrait};
 
-class User implements MediaInterface {
+#[ORM\Entity]
+#[ORM\HasLifecycleCallbacks]
+class User extends MediaSuperClass
+{
     use MediaTrait;
+    use AvatarTrait;
 
-    // For multiple columns, override:
-    public function getMediaColumns(): array {
+    public function getMediaColumns(): array
+    {
         return ['media', 'avatar'];
     }
 }
 
-// Usage
 $user->addMedia($media);
 $user->setMedia([$media1, $media2]);
-$firstMedia = $user->getMedia()[0] ?? null;
+$first = $user->getAvatarFirst();
+```
+
+**N+1:** every reference loads on first use, one query each. Before rendering a list call
+`MediaRepository::preload()` with the columns you are about to read:
+
+```php
+$mediaRepository->preload(array_map(fn (User $u) => $u->getAvatar(), $users));
 ```
 
 ## 4. Media Conversions
 
-**What conversions are:**
-- Automatic transformations applied during upload
-- Configured via `MediaManager` method chaining
-- Applied synchronously before storage write
+Applied synchronously by `createMedia()` before the storage write, never retroactively.
 
-**When conversions run:**
-- During `uploadFile()`, `uploadBase64()`, `uploadLink()`, `createMedia()`
-- Before persistence to database
-- Conversions are NOT retroactive
+- `imageCompress` (`true`): re-encode jpg/png
+- `imageConvertJPG` (`true`): png/jpeg → jpg (transparency is lost)
+- `imageQuality` (`75`)
+- `imageWidth` × `imageHeight` (`720` × `1280`): best-fit box, aspect ratio kept
+- `imageMaxPixels` (`40000000`): dimensions are read from the header and larger images refused before
+  GD decodes them; GD memory is not counted by `memory_limit`
 
-**Where conversions are defined:**
-- `setImageCompress(bool)` - Enable/disable compression
-- `setImageConvertJPG(bool)` - PNG/JPEG → JPG conversion
-- `setImageQuality(int)` - JPEG quality (0-100)
-- `setImageSize(int $height, int $width)` - Max dimensions with aspect ratio
-
-**Example:**
 ```php
-$medias = $mediaManager
-    ->setImageCompress(true)
-    ->setImageConvertJPG(true)
-    ->setImageQuality(75)
-    ->setImageSize(1280, 720)
-    ->uploadFile($request);
+$media = $mediaManager->uploadFromUploadedFile($file, ['image/png', 'image/jpeg'], [
+    'imageQuality' => 85,
+    'imageWidth' => 1920,
+    'imageHeight' => 1080,
+]);
 ```
 
 ## 5. Media Metadata
 
-**Available metadata fields:**
-- `id` (UuidV7)
-- `path` (string, storage path)
-- `mime` (string, MIME type)
-- `size` (int, bytes)
-- `counter` (int, reference count, default `1`)
-- `data` (array, JSON field for custom metadata)
-- `storage` (string, storage provider key)
-- `owner` (string|null, owner identifier)
-- `createdAt` (DateTimeImmutable)
+| Field | |
+|---|---|
+| `id` | UuidV7 |
+| `path` | storage key, `Y/m/<ulid>.<ext>` |
+| `mime` | detected type, up to 255 chars |
+| `size` | bytes stored (after compression) |
+| `data` | JSONB for custom values (`filename`, `public`, …) |
+| `storage` | device key |
+| `private` | stored in the device's private bucket |
+| `status` | `ready`, or `pending` for presigned uploads not yet confirmed |
+| `owner` | optional UuidV7 |
+| `createdAt` | |
 
-**How metadata is accessed:**
 ```php
-$media->getId()->toBase32();
-$media->getPath();
-$media->getMime();
-$media->getSize();
-$media->getData();
-$media->getExtension(); // Extracted from path
+$media->setData(['width' => 1920, 'height' => 1080]);
+$media->addFileName('report.pdf');   // used in Content-Disposition
+$media->setOwner($organization->getId());
+$media->hasOwner($id);               // false when there is no owner
 ```
 
-**Auto-generated vs custom:**
-- Auto: `id`, `path`, `mime`, `size`, `storage`, `createdAt`, `counter`
-- Custom: `data` (JSON), `owner`
+## 6. Serving
 
-**Example:**
+- `toString($storage)`: CDN URL for public media, presigned URL for private ones, signed app URL for the
+  `local` driver
+- `getResponse($storage)`: sends `X-Content-Type-Options: nosniff`; images, audio, video, pdf and plain
+  text inline, everything else as an attachment; private or non-public media get `Cache-Control: private`
+  so a CDN never shares them
+- `validateSignature($storage, $uri)`: checks a signed `local` URL
+
+## 7. Deletion & Cleanup
+
+- Deleting a `Media` row deletes its storage object. `MediaRemovedListener` queues the object on
+  `postRemove` and deletes it on `postFlush` once no transaction is open, only if the row is really gone.
+  A rolled-back transaction keeps the file.
+- A flush run inside an explicit transaction is handled by the next flush after commit, or on kernel reset.
+- `MediaSuperClass` removes an entity's media in the same flush as the entity (`preRemove`, no nested flush).
+  A stale reference whose row is already gone is skipped.
+- **No reference counting.** Removing a media from a column (`removeMedia`, `setMedia`, `clearMedia`) does
+  not delete it. Remove the replaced `Media` yourself. A `Media` shared by two entities is deleted with
+  whichever is removed first.
+- `pending` media whose upload never completed are not swept by the bundle; schedule a job that removes
+  stale pending rows.
+
 ```php
-$media->setData(['width' => 1920, 'height' => 1080, 'dominant_color' => '#ff5733']);
-$metadata = $media->getData();
-
-$media->setOwner($user->getId());
+$old = $user->getAvatarFirst();
+$user->setAvatar([$new]);
+if ($old) {
+    $em->remove($old);
+}
+$em->flush();
 ```
 
-## 6. Media Deletion & Cleanup
-
-**Deletion behavior:**
-- Removing `Media` entity triggers storage file deletion
-- Uses Doctrine `postRemove` event listener
-- Automatic cleanup via `MediaRemovedListener`
-
-**Handling of variants:**
-- No variant system; single file per Media entity
-- Deleting Media deletes one storage file
-
-**Orphan cleanup rules:**
-- Reference counting via `counter` field
-- When entity with media column is updated/deleted, counter decrements
-- Counter reaches `0` → Media entity auto-deleted
-- Auto-deletion triggers storage cleanup
-
-**Example:**
-```php
-// Manual deletion
-$em->remove($media);
-$em->flush(); // File deleted from storage automatically
-
-// Automatic via counter
-$user->removeMedia($media); // Decrements counter
-$em->flush(); // If counter = 0, media deleted
-
-// Entity deletion
-$em->remove($user); // All associated media counters decremented
-$em->flush(); // Orphaned media auto-deleted
-```
-
-## 7. Conventions & Rules
-
-**Naming conventions:**
-- Trait properties: camelCase (e.g., `$media`, `$logo`, `$logoCover`)
-- Trait method pattern: `add{Column}()`, `remove{Column}()`, `set{Column}()`, `get{Column}()`
-- Copy `MediaTrait` for each new column; rename methods/properties
+## 8. Conventions
 
 **Do:**
-- Implement `MediaInterface` on entities with media columns
-- Duplicate trait for each media column
-- Configure conversions before upload
-- Use `addMedia()` for incremental additions
-- Use `setMedia()` for full replacement
-- Flush `EntityManager` after uploads to persist
+- Pass an `$allowedMimes` list to every upload
+- Flush right after uploading
+- Remove replaced media explicitly
+- Call `preload()` before reading media for a list of entities
 
 **Don't:**
-- Don't share trait across multiple columns
-- Don't modify media path after creation
-- Don't manually delete storage files (use entity removal)
-- Don't assume conversions apply retroactively
-- Don't bypass counter system (manual counter edits break cleanup)
-
-**Performance considerations:**
-- Image compression/conversion adds upload latency
-- Large images: Set `imageSize` limit to avoid memory exhaustion
-- Base64 uploads: Validate MIME types to prevent processing invalid data
-- Link uploads: Network latency depends on remote server
-
-**Common mistakes:**
-- Using single trait for multiple columns (causes method name conflicts)
-- Forgetting to override `getMediaColumns()` for multi-column entities
-- Removing media entity without decrementing counter (orphaned files)
-- Expecting URL generation (MEDIA-BUNDLE stores paths, not URLs)
+- Enable `allowUnsafe` for user uploads served from your domain
+- Enable `allowPrivateNetwork` for user-supplied URLs
+- Share one `Media` between entities
+- Change a media path after creation, or delete storage objects by hand

@@ -3,45 +3,54 @@ on:
   push:
 
 env:
-  php-version: '8.5'
   php-extensions: :xdebug
   key: php-cache
 
 jobs:
   phpunit:
     # Configuration
-    name: App Test
+    name: App Test (PHP ${{ matrix.php }})
     runs-on: ubuntu-22.04
+    strategy:
+      fail-fast: false
+      matrix:
+        # Lowest supported version first; QA tools run on it.
+        php: ['8.4', '8.5']
 
     # Steps
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       # Install PHP
       - name: Install PHP
         uses: shivammathur/setup-php@v2
         with:
-          php-version: ${{ env.php-version }}
+          php-version: ${{ matrix.php }}
           extensions: ${{ env.php-extensions }}
           ini-values: sys_temp_dir=${{ runner.temp }}
       - name: Get Composer Cache Directory
         id: composer-cache
         run: |
-          echo "::set-output name=dir::$(composer config cache-files-dir)"
-      - uses: actions/cache@v3
+          echo "dir=$(composer config cache-files-dir)" >> "$GITHUB_OUTPUT"
+      - uses: actions/cache@v4
         with:
           path: ${{ steps.composer-cache.outputs.dir }}
-          key: ${{ runner.os }}-composer-${{ hashFiles('**/composer.lock') }}
+          key: ${{ runner.os }}-php${{ matrix.php }}-composer-${{ hashFiles('**/composer.lock') }}
           restore-keys: |
-            ${{ runner.os }}-composer-
+            ${{ runner.os }}-php${{ matrix.php }}-composer-
 
       # Run Tests
       - name: Install App Dependencies
         run: composer install -q --no-ansi --no-interaction --no-scripts --no-progress --prefer-dist
       - name: PHPCS Fixer
+        if: matrix.php == '8.4'
         run: composer qa:lint
       - name: PhpStan
+        if: matrix.php == '8.4'
         run: composer qa:phpstan
+      - name: Composer Audit
+        if: matrix.php == '8.4'
+        run: composer audit --no-interaction
       - name: Execute PHPUnit
         run: composer test:stop
