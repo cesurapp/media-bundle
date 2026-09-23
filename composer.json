@@ -18,25 +18,24 @@
     "php": ">=8.4",
     "ext-gd": "*",
     "ext-fileinfo": "*",
-    "symfony/mime": "^8.1.7",
-    "symfony/uid": "^8.1.5",
-    "symfony/dependency-injection": "^8.1.7",
-    "symfony/http-kernel": "^8.1.7",
-    "symfony/framework-bundle": "^8.1.7",
-    "symfony/console": "^8.1.7",
-    "doctrine/dbal": "^4.4.4",
-    "doctrine/orm": "^3.7.2",
-    "doctrine/doctrine-bundle": "^3.3.2",
-    "cesurapp/storage-bundle": "^1.2.8",
+    "symfony/mime": "^8.1",
+    "symfony/uid": "^8.1",
+    "symfony/dependency-injection": "^8.1",
+    "symfony/http-kernel": "^8.1",
+    "symfony/framework-bundle": "^8.1",
+    "symfony/console": "^8.1",
+    "doctrine/dbal": "^4.4",
+    "doctrine/orm": "^3.7",
+    "doctrine/doctrine-bundle": "^3.3",
+    "cesurapp/storage-bundle": "^1.2",
     "claviska/simpleimage": "^4.4",
-    "symfony/validator": "^8.1.7",
-    "symfony/http-client": "^8.1.7"
+    "symfony/validator": "^8.1",
+    "symfony/http-client": "^8.1"
   },
   "require-dev": {
-    "php-cs-fixer/shim": "^3.95.27",
-    "phpstan/phpstan": "^2.2.15",
-    "zenstruck/foundry": "^2.13.0",
-    "phpunit/phpunit": "^13.3.4"
+    "php-cs-fixer/shim": "^3.95",
+    "phpstan/phpstan": "^2.2",
+    "phpunit/phpunit": "^13.3"
   },
   "autoload": {
     "psr-4": {

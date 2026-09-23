@@ -17,7 +17,6 @@ class ValidatorTest extends TestCase
     {
         $this->validator = new Base64FileValidatorValidator();
         $this->context = $this->createMock(ExecutionContextInterface::class);
-        $this->validator->initialize($this->context);
     }
 
     public function testValidBase64Image(): void
@@ -34,7 +33,7 @@ class ValidatorTest extends TestCase
 
         $this->context->expects($this->never())->method('buildViolation');
 
-        $this->validator->validate($base64, $constraint);
+        $this->validator->validateInContext($base64, $constraint, $this->context);
     }
 
     public function testValidBase64ImageWithDataUri(): void
@@ -51,7 +50,7 @@ class ValidatorTest extends TestCase
         $this->context->expects($this->never())
             ->method('buildViolation');
 
-        $this->validator->validate($base64, $constraint);
+        $this->validator->validateInContext($base64, $constraint, $this->context);
     }
 
     public function testInvalidMimeType(): void
@@ -77,7 +76,7 @@ class ValidatorTest extends TestCase
             ->with($constraint->mimeMessage)
             ->willReturn($violationBuilder);
 
-        $this->validator->validate($base64, $constraint);
+        $this->validator->validateInContext($base64, $constraint, $this->context);
     }
 
     public function testFileSizeExceedsMaxSize(): void
@@ -104,7 +103,7 @@ class ValidatorTest extends TestCase
             ->with($constraint->sizeMessage)
             ->willReturn($violationBuilder);
 
-        $this->validator->validate($base64, $constraint);
+        $this->validator->validateInContext($base64, $constraint, $this->context);
     }
 
     public function testInvalidBase64String(): void
@@ -120,7 +119,7 @@ class ValidatorTest extends TestCase
             ->with($constraint->invalidMessage)
             ->willReturn($violationBuilder);
 
-        $this->validator->validate('invalid-base64!!!', $constraint);
+        $this->validator->validateInContext('invalid-base64!!!', $constraint, $this->context);
     }
 
     public function testNullValueIsValid(): void
@@ -130,7 +129,7 @@ class ValidatorTest extends TestCase
         $this->context->expects($this->never())
             ->method('buildViolation');
 
-        $this->validator->validate(null, $constraint);
+        $this->validator->validateInContext(null, $constraint, $this->context);
     }
 
     public function testEmptyStringIsValid(): void
@@ -140,7 +139,7 @@ class ValidatorTest extends TestCase
         $this->context->expects($this->never())
             ->method('buildViolation');
 
-        $this->validator->validate('', $constraint);
+        $this->validator->validateInContext('', $constraint, $this->context);
     }
 
     public function testNonStringValueIsInvalid(): void
@@ -156,7 +155,7 @@ class ValidatorTest extends TestCase
             ->with($constraint->invalidMessage)
             ->willReturn($violationBuilder);
 
-        $this->validator->validate(123, $constraint);
+        $this->validator->validateInContext(123, $constraint, $this->context);
     }
 
     public function testReplaceDataWithValidBase64(): void
@@ -188,7 +187,7 @@ class ValidatorTest extends TestCase
             ->method('getPropertyName')
             ->willReturn('testProperty');
 
-        $this->validator->validate($base64, $constraint);
+        $this->validator->validateInContext($base64, $constraint, $this->context);
 
         // Verify that the property was replaced with decoded data
         $this->assertIsArray($mockObject->testProperty);
@@ -231,7 +230,7 @@ class ValidatorTest extends TestCase
             ->method('getPropertyName')
             ->willReturn('testProperty');
 
-        $this->validator->validate($base64, $constraint);
+        $this->validator->validateInContext($base64, $constraint, $this->context);
 
         // Verify that the property was replaced with decoded data
         $this->assertIsArray($mockObject->testProperty);

@@ -3,9 +3,9 @@
 namespace Cesurapp\MediaBundle\Tests;
 
 use claviska\SimpleImage;
-use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
+use PHPUnit\Framework\TestCase;
 
-class ImageTest extends WebTestCase
+class ImageTest extends TestCase
 {
     public function testCrop(): void
     {
