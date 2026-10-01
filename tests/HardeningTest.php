@@ -9,6 +9,7 @@ use Cesurapp\MediaBundle\Manager\MediaManager;
 use Cesurapp\MediaBundle\Repository\MediaRepository;
 use Cesurapp\MediaBundle\Tests\Entity\TestEntity;
 use Cesurapp\MediaBundle\Type\MediaType;
+use Cesurapp\StorageBundle\Client\DriverInterface;
 use Cesurapp\StorageBundle\Storage\Storage;
 use Doctrine\DBAL\Platforms\SQLitePlatform;
 use Doctrine\ORM\EntityManagerInterface;
@@ -157,6 +158,18 @@ class HardeningTest extends KernelTestCase
 
         $this->assertCount(2, $result['links']);
         $this->assertContainsOnlyInstancesOf(Media::class, $result['links']);
+    }
+
+    /** A storage that refuses the object, or cannot be reached, gives no Media: its link would be dead. */
+    public function testStorageRefusingTheFileFails(): void
+    {
+        $driver = $this->createStub(DriverInterface::class);
+        $driver->method('write')->willReturn(false);
+        $manager = new MediaManager(new Storage('local', ['local' => $driver]), new NullLogger(), new MockHttpClient());
+
+        $this->expectException(\RuntimeException::class);
+        $this->expectExceptionMessage('The file could not be written to storage "local".');
+        $manager->uploadFromContent('hello', 'text/plain', 'txt');
     }
 
     public function testTooManyFilesIsRejected(): void

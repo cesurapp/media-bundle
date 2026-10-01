@@ -204,6 +204,8 @@ readonly class MediaManager
      *
      * The stored size is the byte count of what lands in storage, after compression; $size is
      * kept for backward compatibility and no longer used.
+     *
+     * @throws \RuntimeException when the storage does not take the file
      */
     public function createMedia(string $content, string $mimeType, string $extension, int $size, array $options = [], ?string $reqKey = null): Media
     {
@@ -267,7 +269,11 @@ readonly class MediaManager
         } else {
             $metadata['CacheControl'] = 'public, max-age=31536000, immutable';
         }
-        $device->write($content, $path, $mimeType, $metadata);
+        // False when the bucket refuses the object or cannot be reached (the HTTP client reports that
+        // as a status, not an exception): a Media for an object never written would be a dead link.
+        if (!$device->write($content, $path, $mimeType, $metadata)) {
+            throw new \RuntimeException(sprintf('The file could not be written to storage "%s".', $deviceKey));
+        }
 
         // Create Media
         return new Media()

@@ -28,8 +28,10 @@ Always pass an `$allowedMimes` list when the caller knows what it expects.
 | `createMedia(string $content, string $mime, string $extension, int $size, array $options)` | low level, used by all of the above |
 
 **Errors:** validation problems throw `FileValidationException` (code 422); `getErrors()` returns
-`[key => [message]]` for the HTTP helpers and `[message]` otherwise. `uploadHttpLink()` is the exception:
-a link that fails to download or has a disallowed type is logged and left out of the result.
+`[key => [message]]` for the HTTP helpers and `[message]` otherwise. A storage that does not take the
+file (the device's `write()` answers false: refused, or unreachable) throws `\RuntimeException`, so no
+`Media` points at an object that was never written. `uploadHttpLink()` is the exception: a link that
+fails to download, has a disallowed type or cannot be stored is logged and left out of the result.
 
 **Limits:** `maxFiles` (20 per key), `maxSize` (bytes; link downloads default to 20 MB),
 `imageMaxPixels` (40 MP). Link downloads refuse private, loopback and link-local addresses, redirects
