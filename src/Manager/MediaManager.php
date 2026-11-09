@@ -37,8 +37,16 @@ readonly class MediaManager
         'sh', 'cgi', 'pl', 'py', 'asp', 'aspx', 'jsp', 'exe', 'dll', 'bat', 'cmd', 'htaccess',
     ];
 
-    public function __construct(private Storage $storage, protected LoggerInterface $logger, private HttpClientInterface $httpClient)
-    {
+    /**
+     * @param string|null $proxy forward proxy link downloads leave through (`http://host:port`, the bundle's
+     *                           `proxy` setting), so the linked server sees its address; null = direct
+     */
+    public function __construct(
+        private Storage $storage,
+        protected LoggerInterface $logger,
+        private HttpClientInterface $httpClient,
+        private ?string $proxy = null,
+    ) {
     }
 
     /**
@@ -354,7 +362,8 @@ readonly class MediaManager
      * Download remote files concurrently.
      *
      * The client refuses private, loopback and link-local targets, redirects included, unless the
-     * 'allowPrivateNetwork' option is set. Each body is capped at 'maxSize' (default 20 MB).
+     * 'allowPrivateNetwork' option is set. Each body is capped at 'maxSize' (default 20 MB). With the
+     * bundle's `proxy` set, every download leaves through it.
      *
      * @param array<int|string, string> $urls
      *
@@ -376,6 +385,7 @@ readonly class MediaManager
                     'timeout' => $options['downloadTimeout'] ?? 10,
                     'max_duration' => $options['downloadMaxDuration'] ?? 30,
                     'max_redirects' => 3,
+                    'proxy' => $this->proxy ?: null,
                     'user_data' => $index,
                 ]);
             } catch (\Throwable $exception) {

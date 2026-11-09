@@ -36,7 +36,8 @@ fails to download, has a disallowed type or cannot be stored is logged and left 
 **Limits:** `maxFiles` (20 per key), `maxSize` (bytes; link downloads default to 20 MB),
 `imageMaxPixels` (40 MP). Link downloads refuse private, loopback and link-local addresses, redirects
 included, unless `allowPrivateNetwork` is set; they time out after `downloadTimeout` seconds idle and
-`downloadMaxDuration` seconds total.
+`downloadMaxDuration` seconds total. With the bundle's `proxy` setting (`media.proxy`, `http://host:port`)
+every download leaves through that forward proxy, so the linked server sees its address, not the app's.
 
 **Storage write happens before the database row exists.** If the request fails after the upload, the
 object is orphaned. Persist and flush as soon as the upload succeeds.

@@ -5,6 +5,7 @@ namespace Cesurapp\MediaBundle;
 use Doctrine\DBAL\Types\Type;
 use Cesurapp\MediaBundle\Manager\MediaManager;
 use Cesurapp\MediaBundle\Type\MediaType;
+use Symfony\Component\Config\Definition\Configurator\DefinitionConfigurator;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\DependencyInjection\Loader\Configurator\ContainerConfigurator;
 use Symfony\Component\HttpKernel\Bundle\AbstractBundle;
@@ -35,9 +36,20 @@ class MediaBundle extends AbstractBundle
         $services->load('Cesurapp\\MediaBundle\\Repository\\', 'Repository');
 
         // Media Manager
-        $manager = $services->set(MediaManager::class, MediaManager::class);
+        $manager = $services->set(MediaManager::class, MediaManager::class)->arg('$proxy', $config['proxy']);
         if ('test' === $container->env()) {
             $manager->public();
         }
+    }
+
+    public function configure(DefinitionConfigurator $definition): void
+    {
+        $definition->rootNode()
+            ->children()
+                ->scalarNode('proxy')
+                    ->defaultNull()
+                    ->info('Forward proxy link downloads leave through (http://host:port), so the linked server sees its address; null = direct.')
+                ->end()
+            ->end();
     }
 }

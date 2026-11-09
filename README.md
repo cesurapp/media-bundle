@@ -20,6 +20,16 @@ Media management bundle for Symfony, built on top of `cesurapp/storage-bundle`.
 composer require cesurapp/media-bundle
 ```
 
+Optional configuration:
+
+```yaml
+# config/packages/media.yaml
+media:
+  # Forward proxy link downloads leave through (http://host:port), so the linked server sees the
+  # proxy's address instead of the app's. null (default) = direct.
+  proxy: '%env(default::MEDIA_PROXY)%'
+```
+
 ## Quick Start
 
 ### 1. Add a Media Column to an Entity

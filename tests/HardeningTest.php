@@ -146,6 +146,25 @@ class HardeningTest extends KernelTestCase
         $manager->uploadFromUrl('http://10.0.0.1/a.png', null, ['allowPrivateNetwork' => true, 'maxSize' => 1024]);
     }
 
+    /** With the bundle's `proxy` set every link download leaves through it; without, they go direct. */
+    public function testLinkDownloadsLeaveThroughTheConfiguredProxy(): void
+    {
+        $body = file_get_contents(__DIR__.'/resources/image.png');
+        $proxies = [];
+        $client = new MockHttpClient(static function (string $method, string $url, array $options) use ($body, &$proxies) {
+            $proxies[] = $options['proxy'];
+
+            return new MockResponse($body);
+        });
+
+        $proxied = new MediaManager($this->storage, new NullLogger(), $client, 'http://198.51.100.7:8888');
+        $proxied->uploadFromUrl('http://10.0.0.1/a.png', null, ['allowPrivateNetwork' => true]);
+        $direct = new MediaManager($this->storage, new NullLogger(), $client);
+        $direct->uploadFromUrl('http://10.0.0.1/a.png', null, ['allowPrivateNetwork' => true]);
+
+        $this->assertSame(['http://198.51.100.7:8888', null], $proxies);
+    }
+
     public function testHttpLinkDropsFailedItems(): void
     {
         $body = file_get_contents(__DIR__.'/resources/image.png');
